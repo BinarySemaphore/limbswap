@@ -33,21 +33,6 @@ public class PlayerController : MonoBehaviour
         this.body = this.GetComponent<Rigidbody2D>();
         this.on_ground = false;
         this.extend_jump = 0;
-
-        // Bake a list of jump speeds into list starting smaller to larger by cutting total in half each time.
-        // Will be ref-ed in reverse order, so actual jump starts strong and if continued provides less and less velocity.
-        //float cur_jump_slice_speed = this.jump_speed;
-        //this.jump_speed_slices = new float[this.slice_jump];
-        //for (int i = this.slice_jump - 1; i > 3; i--)
-        //{
-        //    cur_jump_slice_speed *= 0.25f;
-        //    this.jump_speed_slices[i] = cur_jump_slice_speed;
-        //}
-        //// Add last one in to fill out, so sum of array equals original jump_speed.
-        //this.jump_speed_slices[0] = cur_jump_slice_speed;
-        //this.jump_speed_slices[1] = cur_jump_slice_speed;
-        //this.jump_speed_slices[2] = cur_jump_slice_speed;
-        //this.jump_speed_slices[3] = cur_jump_slice_speed;
         this.jump_speed /= this.slice_jump;
     }
 
