@@ -15,6 +15,10 @@ public class PlayerController : MonoBehaviour
     private float[] jump_speed_slices;
 
     [SerializeField]
+    private SpriteRenderer sprite;
+    [SerializeField]
+    private Animator animator;
+    [SerializeField]
     private float speed = 20f;
     [SerializeField]
     private float in_air_speed = 5f;
@@ -67,7 +71,7 @@ public class PlayerController : MonoBehaviour
         }
         if (Mathf.Abs(horizontal_intput) > 0.1f)
         {
-            if (on_ground) move_delta.x += horizontal_intput * this.speed;
+            if (this.on_ground) move_delta.x += horizontal_intput * this.speed;
             else move_delta.x += horizontal_intput * this.in_air_speed;
         }
 
@@ -77,7 +81,7 @@ public class PlayerController : MonoBehaviour
     private void UpdateMovement(Vector2 delta)
     {
         // Update velocity (counteract horizontal retained velocity if on ground)
-        if (on_ground) delta.x += -this.body.linearVelocity.x;
+        if (this.on_ground) delta.x += -this.body.linearVelocity.x;
         this.body.linearVelocity += new Vector2(delta.x, delta.y);
 
         // Limit velocity
@@ -85,5 +89,21 @@ public class PlayerController : MonoBehaviour
             Mathf.Clamp(this.body.linearVelocity.x, -this.max_horizontal_speed, this.max_horizontal_speed),
             Mathf.Clamp(this.body.linearVelocity.y, -this.max_vertical_speed * 10f, this.max_vertical_speed)
         );
+
+        // Trigger animations
+        if (this.body.linearVelocity.x > 0.001f) this.sprite.flipX = true;
+        else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
+
+        if (this.on_ground)
+        {
+            float ground_speed = Mathf.Abs(this.body.linearVelocity.x);
+            if (ground_speed < 0.001f) this.animator.SetTrigger("Idle");
+            else if (ground_speed < this.max_horizontal_speed * 0.75f) this.animator.SetTrigger("Walking");
+            else this.animator.SetTrigger("Running");
+        }
+        else
+        {
+            this.animator.SetTrigger("InAir");
+        }
     }
 }
