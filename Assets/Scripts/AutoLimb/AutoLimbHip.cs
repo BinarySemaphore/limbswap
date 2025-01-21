@@ -109,23 +109,32 @@ public class AutoLimbHip : MonoBehaviour
         // TODO: Maybe sketchy doing vector2 to vector3 assignment. For safety, probably best to clean up explicitly.
         if (this.lastSurfaceContact) surface_rel_pos_delta = contact.point - this.lastSurfaceContact.point;
 
-        if (contact && this.state == AutoLimbState.Engaged && surface_rel_pos_delta.magnitude > NEAR_ZERO)
+        if (contact)
         {
 
-            Vector3 new_hip_position = this.transform.position - new Vector3(contact.point.x, contact.point.y, 0.0f);
-            new_hip_position = new_hip_position.normalized * this.maxLegExtension * (1.0f - this.gatePercent);
-            this.transform.position = new Vector3(contact.point.x, contact.point.y, 0.0f) + new_hip_position;
-
-            surface_rel_pos_delta = Vector3.ProjectOnPlane(surface_rel_pos_delta, contact.normal + this.lastSurfaceContact.normal);
-            this.UpdateFeetMoving(surface_rel_pos_delta, contact);
-
-            if (this.ambulateCalled)
+            if (this.state == AutoLimbState.Engaged && surface_rel_pos_delta.magnitude > NEAR_ZERO)
             {
-                this.ambulateCalled = false;
-                this.state = AutoLimbState.Paused;
+
+                Vector3 new_hip_position = this.transform.position - new Vector3(contact.point.x, contact.point.y, 0.0f);
+                new_hip_position = new_hip_position.normalized * this.maxLegExtension * (1.0f - this.gatePercent);
+                this.transform.position = new Vector3(contact.point.x, contact.point.y, 0.0f) + new_hip_position;
+
+                surface_rel_pos_delta = Vector3.ProjectOnPlane(surface_rel_pos_delta, contact.normal + this.lastSurfaceContact.normal);
+                this.UpdateFeetMoving(surface_rel_pos_delta, contact);
+
+                if (this.ambulateCalled)
+                {
+                    this.ambulateCalled = false;
+                    this.state = AutoLimbState.Paused;
+                }
             }
+            else
+            {
+                this.UpdateFeetStanding(contact);
+            }
+
+            this.lastSurfaceContact = contact;
         }
-        if (contact) this.lastSurfaceContact = contact;
     }
 
     private void UpdateFeetMoving(Vector3 delta, RaycastHit2D contact)
@@ -162,6 +171,49 @@ public class AutoLimbHip : MonoBehaviour
 
             if (foot_phase <= 2 * Mathf.PI && foot_phase > Mathf.PI) this.feetController.SetFootState(i, AutoLimbFootState.Pushing);
             else this.feetController.SetFootState(i, AutoLimbFootState.Lifting);
+
+            new_foot_position = new Vector3(
+                Mathf.Cos(foot_phase) * surface_distance * 0.5f + contact_point_3d.x,
+                Mathf.Sin(foot_phase) * surface_distance * 0.5f + contact_point_3d.y,
+                contact_point_3d.z
+            );
+            if (foot_state == AutoLimbFootState.Pushing)
+            {
+                new_foot_position = Vector3.ProjectOnPlane(new_foot_position - contact_point_3d, contact.normal) + contact_point_3d;
+            }
+
+            foot.transform.position = new_foot_position;
+        }
+    }
+
+    private void UpdateFeetStanding(RaycastHit2D contact)
+    {
+        GameObject foot;
+        float foot_phase;
+        AutoLimbFootState foot_state;
+        float phase_delta;
+        Vector3 new_foot_position;
+        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.transform.position.z);
+
+        float distance_to_hip = (this.transform.position - contact_point_3d).magnitude;
+        float surface_distance = 2f * Mathf.Sqrt(
+            Mathf.Pow(this.maxLegExtension, 2f) -
+            Mathf.Pow(distance_to_hip, 2f)
+        );
+
+        for (int i = 0; i < this.feetController.Feet.Length; i++)
+        {
+            foot = this.feetController.Feet[i];
+            foot_state = this.feetController.GetFootState(i);
+            // TODO: foot_phase isn't stored, only derived rn, so springing phase_delta won't work atm
+            // Maybe have a currentPhase per foot?
+            foot_phase = Utils.Mod(this.currentPhase + i * this.phaseShift, 2f * Mathf.PI);
+
+            if (foot_phase <= 2 * Mathf.PI && foot_phase > Mathf.PI) this.feetController.SetFootState(i, AutoLimbFootState.Pushing);
+            else this.feetController.SetFootState(i, AutoLimbFootState.Lifting);
+
+            phase_delta = Utils.ShortestAngle(foot_phase, Mathf.PI * 1.5f);
+            foot_phase += phase_delta;
 
             new_foot_position = new Vector3(
                 Mathf.Cos(foot_phase) * surface_distance * 0.5f + contact_point_3d.x,

@@ -4412,7 +4412,7 @@ MonoBehaviour:
   feetToMaintainContact: 1
   feetToNextPush: 1
   liftPercent: 0.1
-  gatePercent: 0.5
+  gatePercent: 0.2
 --- !u!1 &1703373577
 GameObject:
   m_ObjectHideFlags: 0

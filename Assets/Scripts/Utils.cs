@@ -2,12 +2,20 @@ using UnityEngine;
 
 public static class Utils
 {
-    public static float Mod(float x, float y)
+    public static float Mod(float number, float divisor)
     {
-        float value = x % y;
-        if (value < 0f) value += y;
+        float value = number % divisor;
+        if (value < 0f) value += divisor;
         return value;
     }
+
+    public static float ShortestAngle(float start, float target)
+    {
+        float delta_angle = target - start;
+        if (Mathf.Abs(delta_angle) > Mathf.PI) delta_angle += 2f * Mathf.PI;
+        return delta_angle;
+    }
+
     public static void ApplySpringResolveSingle(float target_length, float spring_coef, Vector3 attachment_point, GameObject obj_a)
     {
         Vector3 to_attch_point_diff = attachment_point - obj_a.transform.position;
