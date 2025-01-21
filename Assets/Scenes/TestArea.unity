@@ -4017,7 +4017,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a152c21ac590dc043a48173c1366e677, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  state: 0
+  state: 1
+  numberFeetToPush: 1
 --- !u!1 &1703373577
 GameObject:
   m_ObjectHideFlags: 0

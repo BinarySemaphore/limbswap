@@ -1,22 +1,24 @@
-using System.ComponentModel;
 using UnityEngine;
 
 public class AutoLimbHip : MonoBehaviour
 {
 
     [SerializeField]
-    [DefaultValue(AutoLimbState.Paused)]
-    private AutoLimbState state;
+    private AutoLimbState state = AutoLimbState.Paused;
+    [SerializeField]
+    private int numberFeetToPush = 1;
 
-    private bool ambulate_called = false;
-    private float phase_change;
-    private AutoLimb body_controller;
-    private AutoLimbFeet feet_controller;
+    private bool ambulateCalled = false;
+    private float currentPhase = 0f;
+    private float phaseDelta;
+    private AutoLimb bodyController;
+    private AutoLimbFeet feetController;
 
     private void Start()
     {
-        this.body_controller = this.transform.parent.GetComponent<AutoLimb>();
-        this.feet_controller = this.GetComponentInChildren<AutoLimbFeet>();
+        this.bodyController = this.transform.parent.GetComponent<AutoLimb>();
+        this.feetController = this.GetComponentInChildren<AutoLimbFeet>();
+        this.phaseDelta = 360f / this.feetController.Feet.Length;
     }
 
     private void FixedUpdate()
@@ -24,9 +26,9 @@ public class AutoLimbHip : MonoBehaviour
         if (this.state == AutoLimbState.Engaged)
         {
             this.MoveFeet();
-            if (this.ambulate_called)
+            if (this.ambulateCalled)
             {
-                this.ambulate_called = false;
+                this.ambulateCalled = false;
                 this.state = AutoLimbState.Paused;
             }
         }
@@ -39,7 +41,7 @@ public class AutoLimbHip : MonoBehaviour
 
     public AutoLimbFeet FeetController
     {
-        get { return this.feet_controller; }
+        get { return this.feetController; }
     }
 
     /// <summary>
@@ -72,9 +74,9 @@ public class AutoLimbHip : MonoBehaviour
     /// </remarks>
     public void Ambulate()
     {
-        if (this.state != AutoLimbState.Engaged && !this.ambulate_called)
+        if (this.state != AutoLimbState.Engaged && !this.ambulateCalled)
         {
-            this.ambulate_called = true;
+            this.ambulateCalled = true;
             this.state = AutoLimbState.Engaged;
         }
     }

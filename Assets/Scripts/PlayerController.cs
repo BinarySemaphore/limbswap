@@ -66,7 +66,7 @@ public class PlayerController : MonoBehaviour
         {
             if (this.extend_jump > 0) this.extend_jump -= 1;
             if (this.on_ground) this.extend_jump = this.slice_jump;
-            move_delta.y += this.jump_speed;//this.jump_speed_slices[this.extend_jump];
+            move_delta.y += this.jump_speed;
         }
         if (Mathf.Abs(horizontal_intput) > 0.1f)
         {
