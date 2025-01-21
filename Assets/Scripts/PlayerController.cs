@@ -12,7 +12,6 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D body;
     private bool on_ground;
     private int extend_jump;
-    private float[] jump_speed_slices;
 
     [SerializeField]
     private SpriteRenderer sprite;
