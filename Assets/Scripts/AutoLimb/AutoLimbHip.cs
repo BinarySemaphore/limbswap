@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 
 public class AutoLimbHip : MonoBehaviour
 {
@@ -7,12 +8,27 @@ public class AutoLimbHip : MonoBehaviour
 
     private bool ambulateCalled = false;
     private float maxLegExtension;
-    private Vector3 neutralPosition;
-    private Vector3 lastPosition;
+    private float hipToParentLength;
+    private float feetToHipLength;
+    private float currentPhase;
+    private float phaseShift;
+    private RaycastHit2D lastSurfaceContact;
     private AutoLimbFeet feetController;
 
     public GameObject debugCube;
 
+    [SerializeField]
+    [Tooltip("Hip will lower to surface to resolve gate; it will maintain distance to parent by pulling on it")]
+    private GameObject parent;
+    [SerializeField]
+    [Range(0.01f, 0.99f)]
+    private float attachmentSpringiness = 0.30f;
+    [SerializeField]
+    [Tooltip("Leave zero to autoset on spawn")]
+    private Vector3 hipDirection = Vector3.zero;
+    [SerializeField]
+    [Tooltip("Leave zero to autoset on spawn")]
+    private Vector3 feetDirection = Vector3.zero;
     [SerializeField]
     private AutoLimbState state = AutoLimbState.Paused;
     [SerializeField]
@@ -23,13 +39,30 @@ public class AutoLimbHip : MonoBehaviour
     [SerializeField]
     [Range(0.01f, 0.99f)]
     private float liftPercent = 0.1f;
+    [SerializeField]
+    [Range(0.01f, 0.99f)]
+    [Tooltip("Gate as percet of diameter using leg length from hip. Near 100% would be doing the splits; Near 0% would be tiny tiptoeing")]
+    private float gatePercent = 0.5f;
 
     private void Start()
     {
         this.feetController = this.GetComponentInChildren<AutoLimbFeet>();
 
-        this.maxLegExtension = (this.transform.position - this.feetController.transform.position).magnitude * LEG_FOOT_EXTENSION;
-        this.neutralPosition = this.feetController.Feet[0].transform.position;
+        Vector3 parent_to_hip = this.transform.position - this.parent.transform.position;
+        Vector3 hip_to_feet = this.feetController.transform.position - this.transform.position;
+
+        this.hipToParentLength = parent_to_hip.magnitude;
+        this.feetToHipLength = hip_to_feet.magnitude;
+
+        if (this.hipDirection == Vector3.zero) this.hipDirection = parent_to_hip.normalized;
+        if (this.feetDirection == Vector3.zero) this.feetDirection = hip_to_feet.normalized;
+
+        this.maxLegExtension = this.feetToHipLength * LEG_FOOT_EXTENSION;
+        //this.neutralPosition = this.feetDirection * this.feetToHipLength;
+
+        this.currentPhase = 0f;
+        // TODO: Allow some way for unity ui to specify phases (eg cheetah vs horse vs spider/crab vs robot)
+        this.phaseShift = 2f * Mathf.PI / this.feetController.Feet.Length;
 
         // Initialize each foot's state as pushing or lifting
         // This is very important to develop a cadence for the animation.
@@ -49,11 +82,13 @@ public class AutoLimbHip : MonoBehaviour
 
     private void FixedUpdate()
     {
-        Vector3 surface_rel_pos_delta;
+        Vector3 surface_rel_pos_delta = Vector3.zero;
+
+        this.PositionFeetHipAndParent();
 
         RaycastHit2D contact = Physics2D.Raycast(
             this.transform.position,
-            this.feetController.transform.position - this.transform.position,
+            this.feetDirection,
             this.maxLegExtension,
             LayerMask.GetMask("Surface")
         );
@@ -71,78 +106,102 @@ public class AutoLimbHip : MonoBehaviour
         }
         else this.debugCube.SetActive(false);
 
-        if (contact && this.state == AutoLimbState.Engaged)
-        {
-            surface_rel_pos_delta = this.transform.position - this.lastPosition;
-            surface_rel_pos_delta = Vector3.ProjectOnPlane(surface_rel_pos_delta, contact.normal);
+        // TODO: Maybe sketchy doing vector2 to vector3 assignment. For safety, probably best to clean up explicitly.
+        if (this.lastSurfaceContact) surface_rel_pos_delta = contact.point - this.lastSurfaceContact.point;
 
-            this.UpdateFeetMoving(surface_rel_pos_delta, contact.normal);
+        if (contact && this.state == AutoLimbState.Engaged && surface_rel_pos_delta.magnitude > NEAR_ZERO)
+        {
+
+            Vector3 new_hip_position = this.transform.position - new Vector3(contact.point.x, contact.point.y, 0.0f);
+            new_hip_position = new_hip_position.normalized * this.maxLegExtension * (1.0f - this.gatePercent);
+            this.transform.position = new Vector3(contact.point.x, contact.point.y, 0.0f) + new_hip_position;
+
+            surface_rel_pos_delta = Vector3.ProjectOnPlane(surface_rel_pos_delta, contact.normal + this.lastSurfaceContact.normal);
+            this.UpdateFeetMoving(surface_rel_pos_delta, contact);
+
             if (this.ambulateCalled)
             {
                 this.ambulateCalled = false;
                 this.state = AutoLimbState.Paused;
             }
         }
-        this.lastPosition = this.transform.position;
+        if (contact) this.lastSurfaceContact = contact;
     }
 
-    private void UpdateFeetMoving(Vector3 delta, Vector3 normal)
+    private void UpdateFeetMoving(Vector3 delta, RaycastHit2D contact)
     {
+        float foot_phase;
         AutoLimbFootState foot_state;
+        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.transform.position.z);
         Vector3 new_foot_position;
         GameObject foot;
-        RaycastHit2D contact;
+        RaycastHit2D foot_contact;
 
-        if (delta.magnitude < NEAR_ZERO) return;
+        if (delta.magnitude < 0.01f) return;
+
+        // TODO: If/When updating foot travel path to circle/oval make sure this get's updated for percent covered circumference
+        float distance_to_hip = (this.transform.position - contact_point_3d).magnitude;
+        float surface_distance = 2f * Mathf.Sqrt(
+            Mathf.Pow(this.maxLegExtension, 2f) -
+            Mathf.Pow(distance_to_hip, 2f)
+        );
+        float available_distance = Mathf.PI * surface_distance + surface_distance;
+        // Angle is radians full circle * ratio; ratio is distance over circumferance
+        // Simplified from 2f * Mathf.PI * (delta.magnitude / (surface_distance * Mathf.PI))
+        float phase_delta = 2f * (delta.magnitude / surface_distance);
+
+        if (delta.x + delta.y > 0) this.currentPhase -= phase_delta;
+        else this.currentPhase += phase_delta;
+        this.currentPhase = Utils.Mod(this.currentPhase, 2f * Mathf.PI);
 
         for (int i = 0; i < this.feetController.Feet.Length; i++)
         {
             foot = this.feetController.Feet[i];
             foot_state = this.feetController.GetFootState(i);
-            new_foot_position = foot.transform.position;
-            if (foot_state == AutoLimbFootState.Lifting)
-            {
-                new_foot_position += delta;
-                //contact = Physics2D.Raycast(
-                //    new_foot_position,
-                //    normal * -1f,
-                //    this.maxLegExtension,
-                //    LayerMask.GetMask("Surface")
-                //);
-                //if (contact)
-                //{
-                //    new_foot_position = new Vector3(contact.point.x, contact.point.y, new_foot_position.z);
-                //    new_foot_position += normal * 0.1f; //TODO: replace with actual lift percent to hip
-                //}
+            foot_phase = Utils.Mod(this.currentPhase + i * this.phaseShift,  2f * Mathf.PI);
 
-                if ((new_foot_position - this.transform.position).magnitude > this.maxLegExtension)
-                {
-                    // TODO: attach back to ground
-                    this.feetController.SetFootState(i, AutoLimbFootState.Pushing);
-                    continue;
-                }
-            }
-            else
-            {
-                new_foot_position -= delta;
-                //contact = Physics2D.Raycast(
-                //    new_foot_position,
-                //    normal * -1f,
-                //    this.maxLegExtension,
-                //    LayerMask.GetMask("Surface")
-                //);
-                //if (contact) new_foot_position = new Vector3(contact.point.x, contact.point.y, new_foot_position.z);
+            if (foot_phase <= 2 * Mathf.PI && foot_phase > Mathf.PI) this.feetController.SetFootState(i, AutoLimbFootState.Pushing);
+            else this.feetController.SetFootState(i, AutoLimbFootState.Lifting);
 
-                // TODO: if dragging prevent -delta if at max extension
-                if ((new_foot_position - this.transform.position).magnitude > this.maxLegExtension)
-                {
-                    // TODO: lift from ground
-                    this.feetController.SetFootState(i, AutoLimbFootState.Lifting);
-                    continue;
-                }
+            new_foot_position = new Vector3(
+                Mathf.Cos(foot_phase) * surface_distance * 0.5f + contact_point_3d.x,
+                Mathf.Sin(foot_phase) * surface_distance * 0.5f + contact_point_3d.y,
+                contact_point_3d.z
+            );
+            if (foot_state == AutoLimbFootState.Pushing)
+            {
+                new_foot_position = Vector3.ProjectOnPlane(new_foot_position - contact_point_3d, contact.normal) + contact_point_3d;
             }
+
             foot.transform.position = new_foot_position;
         }
+    }
+
+    private void PositionFeetHipAndParent()
+    {
+        float half_spring_coef = this.attachmentSpringiness * 0.5f;
+        if (this.hipDirection.magnitude > 1 + NEAR_ZERO) this.hipDirection.Normalize();
+        if (this.feetDirection.magnitude > 1 + NEAR_ZERO) this.feetDirection.Normalize();
+
+        Utils.ApplySpringResolveSingle(
+            this.hipToParentLength,
+            half_spring_coef,
+            this.transform.position,
+            this.parent
+        );
+        Utils.ApplySpringResolveSingle(
+            0f,
+            half_spring_coef,
+            this.parent.transform.position + this.hipDirection * this.hipToParentLength,
+            this.gameObject
+        );
+        Utils.ApplySpringResolveSingle(
+            0f,
+            half_spring_coef,
+            this.transform.position + this.feetDirection * this.feetToHipLength,
+            this.feetController.gameObject
+        );
+        //Utils.ApplySpringResolveDual(this.hipToParentLength, this.attachmentSpringiness, this.gameObject, this.hipParent);
     }
 
     public AutoLimbFeet FeetController

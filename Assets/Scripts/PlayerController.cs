@@ -90,19 +90,25 @@ public class PlayerController : MonoBehaviour
         );
 
         // Trigger animations
-        if (this.body.linearVelocity.x > 0.001f) this.sprite.flipX = true;
-        else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
+        if (this.sprite)
+        {
+            if (this.body.linearVelocity.x > 0.001f) this.sprite.flipX = true;
+            else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
+        }
 
         if (this.on_ground)
         {
             float ground_speed = Mathf.Abs(this.body.linearVelocity.x);
-            if (ground_speed < 0.001f) this.animator.SetTrigger("Idle");
-            else if (ground_speed < this.max_horizontal_speed * 0.75f) this.animator.SetTrigger("Walking");
-            else this.animator.SetTrigger("Running");
+            if (animator)
+            {
+                if (ground_speed < 0.001f) this.animator.SetTrigger("Idle");
+                else if (ground_speed < this.max_horizontal_speed * 0.75f) this.animator.SetTrigger("Walking");
+                else this.animator.SetTrigger("Running");
+            }
         }
         else
         {
-            this.animator.SetTrigger("InAir");
+            if (animator) this.animator.SetTrigger("InAir");
         }
     }
 }
