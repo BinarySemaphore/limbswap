@@ -4,7 +4,6 @@ public enum AutoLimbState
 {
     Disabled,
     Paused,
-    [InspectorName(null)]
     Engaged
 }
 

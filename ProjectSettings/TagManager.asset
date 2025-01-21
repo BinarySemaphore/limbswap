@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
+  serializedVersion: 3
   tags:
   - Ground
   layers:
@@ -12,7 +12,7 @@ TagManager:
   - 
   - Water
   - UI
-  - 
+  - Surface
   - 
   - 
   - 
@@ -42,9 +42,5 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
-  - name: Obstacle
-    uniqueID: 4161521645
-    locked: 0
-  - name: Ground
-    uniqueID: 2433035415
-    locked: 0
+  m_RenderingLayers:
+  - Default
