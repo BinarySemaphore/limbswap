@@ -1,5 +1,12 @@
+using System;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
+
+[Serializable]
+public class Leg
+{
+    public GameObject[] segments;
+}
 
 public class AutoLimbHip : MonoBehaviour
 {
@@ -14,12 +21,14 @@ public class AutoLimbHip : MonoBehaviour
     private float phaseShift;
     private RaycastHit2D lastSurfaceContact;
     private AutoLimbFeet feetController;
+    private AutoLimb bodyController;
 
-    public GameObject debugCube;
+    private GameObject debugArrow;
+    private GameObject debugCircle;
 
-    [SerializeField]
-    [Tooltip("Hip will lower to surface to resolve gate; it will maintain distance to parent by pulling on it")]
-    private GameObject parent;
+    [Tooltip("Hip will lower to surface to resolve gate; distance to parent maintained by spring")]
+    public GameObject parent;
+
     [SerializeField]
     [Range(0.01f, 0.99f)]
     private float attachmentSpringiness = 0.30f;
@@ -43,9 +52,15 @@ public class AutoLimbHip : MonoBehaviour
     [Range(0.01f, 0.99f)]
     [Tooltip("Gate as percet of diameter using leg length from hip. Near 100% would be doing the splits; Near 0% would be tiny tiptoeing")]
     private float gatePercent = 0.5f;
+    [SerializeField]
+    private Leg[] legsAndSegments;
 
     private void Start()
     {
+        debugArrow = GameObject.Find("/debugArrow");
+        debugCircle = GameObject.Find("/debugCircle");
+
+        this.bodyController = this.GetBodyController(this.parent);
         this.feetController = this.GetComponentInChildren<AutoLimbFeet>();
 
         Vector3 parent_to_hip = this.transform.position - this.parent.transform.position;
@@ -64,19 +79,19 @@ public class AutoLimbHip : MonoBehaviour
         // TODO: Allow some way for unity ui to specify phases (eg cheetah vs horse vs spider/crab vs robot)
         this.phaseShift = 2f * Mathf.PI / this.feetController.Feet.Length;
 
-        // Initialize each foot's state as pushing or lifting
+        // Initialize each foot's state as pushing or lifting and phase.
         // This is very important to develop a cadence for the animation.
         int contact_count_down = this.feetToMaintainContact;
         int feet_until_next_push = 0;
         for (int i = 0; i < this.feetController.Feet.Length; i++)
         {
-            if (contact_count_down <= 0) break;
-            if (feet_until_next_push == 0)
+            if (contact_count_down > 0 && feet_until_next_push == 0)
             {
                 this.feetController.SetFootState(i, AutoLimbFootState.Pushing);
                 feet_until_next_push = this.feetToNextPush;
                 contact_count_down -= 1;
             }
+            //this.feetController.SetFootPhase(i, this.)
         }
     }
 
@@ -94,17 +109,17 @@ public class AutoLimbHip : MonoBehaviour
         );
         if (contact)
         {
-            this.debugCube.SetActive(true);
-            this.debugCube.transform.position = new Vector3(contact.point.x, contact.point.y, -3f);
-            this.debugCube.transform.LookAt(
+            this.debugArrow.SetActive(true);
+            this.debugArrow.transform.position = new Vector3(contact.point.x, contact.point.y, -3f);
+            this.debugArrow.transform.LookAt(
                 new Vector3(
-                    this.debugCube.transform.position.x + contact.normal.x,
-                    this.debugCube.transform.position.y + contact.normal.y,
-                    this.debugCube.transform.position.z),
+                    this.debugArrow.transform.position.x + contact.normal.x,
+                    this.debugArrow.transform.position.y + contact.normal.y,
+                    this.debugArrow.transform.position.z),
                 Vector3.forward
             );
         }
-        else this.debugCube.SetActive(false);
+        else this.debugArrow.SetActive(false);
 
         // TODO: Maybe sketchy doing vector2 to vector3 assignment. For safety, probably best to clean up explicitly.
         if (this.lastSurfaceContact) surface_rel_pos_delta = contact.point - this.lastSurfaceContact.point;
@@ -112,7 +127,7 @@ public class AutoLimbHip : MonoBehaviour
         if (contact)
         {
 
-            if (this.state == AutoLimbState.Engaged && surface_rel_pos_delta.magnitude > NEAR_ZERO)
+            if (this.state == AutoLimbState.Engaged && surface_rel_pos_delta.magnitude > 0.05f)
             {
 
                 Vector3 new_hip_position = this.transform.position - new Vector3(contact.point.x, contact.point.y, 0.0f);
@@ -134,6 +149,29 @@ public class AutoLimbHip : MonoBehaviour
             }
 
             this.lastSurfaceContact = contact;
+        }
+
+        if (this.legsAndSegments.Length > 0 && this.legsAndSegments[0].segments.Length > 0)
+        {
+            if (this.legsAndSegments.Length != this.feetController.Feet.Length)
+            {
+                throw new Exception("Legs And Segments, number of legs needs to match Hip/Feet number of children");
+            }
+            ConstructLegsAndSegments();
+        }
+    }
+
+    private void UpdateFeetStanding(RaycastHit2D contact)
+    {
+        GameObject foot;
+        Vector3 new_foot_position;
+        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.transform.position.z);
+
+        for (int i = 0; i < this.feetController.Feet.Length; i++)
+        {
+            foot = this.feetController.Feet[i];
+            new_foot_position = foot.transform.position + 0.1f * (contact_point_3d - foot.transform.position);
+            foot.transform.position = new_foot_position;
         }
     }
 
@@ -159,10 +197,13 @@ public class AutoLimbHip : MonoBehaviour
         // Simplified from 2f * Mathf.PI * (delta.magnitude / (surface_distance * Mathf.PI))
         float phase_delta = 2f * (delta.magnitude / surface_distance);
 
-        if (delta.x + delta.y > 0) this.currentPhase -= phase_delta;
-        else this.currentPhase += phase_delta;
+        // Update feet positioning phase
+        float phase_direction = Vector3.Cross(contact.normal, delta).z;
+        if (phase_direction > 0) this.currentPhase += phase_delta;
+        else this.currentPhase -= phase_delta;
         this.currentPhase = Utils.Mod(this.currentPhase, 2f * Mathf.PI);
 
+        // Set individual foot positions by phase; TODO: refactor into single function
         for (int i = 0; i < this.feetController.Feet.Length; i++)
         {
             foot = this.feetController.Feet[i];
@@ -186,46 +227,43 @@ public class AutoLimbHip : MonoBehaviour
         }
     }
 
-    private void UpdateFeetStanding(RaycastHit2D contact)
+    private void ConstructLegsAndSegments()
     {
-        GameObject foot;
-        float foot_phase;
-        AutoLimbFootState foot_state;
-        float phase_delta;
-        Vector3 new_foot_position;
-        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.transform.position.z);
+        int segment_count = this.legsAndSegments[0].segments.Length;
+        float angle;
+        Leg leg;
+        GameObject foot, segment;
+        Vector3 segment_length, start_point, end_point;
 
-        float distance_to_hip = (this.transform.position - contact_point_3d).magnitude;
-        float surface_distance = 2f * Mathf.Sqrt(
-            Mathf.Pow(this.maxLegExtension, 2f) -
-            Mathf.Pow(distance_to_hip, 2f)
-        );
+        // TODO: support 1 and 3 or more segment legs
+        if (segment_count != 2) throw new NotImplementedException("Only 2 segment legs are supported");
 
         for (int i = 0; i < this.feetController.Feet.Length; i++)
         {
             foot = this.feetController.Feet[i];
-            foot_state = this.feetController.GetFootState(i);
-            // TODO: foot_phase isn't stored, only derived rn, so springing phase_delta won't work atm
-            // Maybe have a currentPhase per foot?
-            foot_phase = Utils.Mod(this.currentPhase + i * this.phaseShift, 2f * Mathf.PI);
-
-            if (foot_phase <= 2 * Mathf.PI && foot_phase > Mathf.PI) this.feetController.SetFootState(i, AutoLimbFootState.Pushing);
-            else this.feetController.SetFootState(i, AutoLimbFootState.Lifting);
-
-            phase_delta = Utils.ShortestAngle(foot_phase, Mathf.PI * 1.5f);
-            foot_phase += phase_delta;
-
-            new_foot_position = new Vector3(
-                Mathf.Cos(foot_phase) * surface_distance * 0.5f + contact_point_3d.x,
-                Mathf.Sin(foot_phase) * surface_distance * 0.5f + contact_point_3d.y,
-                contact_point_3d.z
+            leg = this.legsAndSegments[i];
+            start_point = this.transform.position;
+            end_point = Utils.IkSolveTwoSeg(
+                this.transform.position,
+                foot.transform.position,
+                this.bodyController.forward,
+                this.feetToHipLength * 0.5f
             );
-            if (foot_state == AutoLimbFootState.Pushing)
-            {
-                new_foot_position = Vector3.ProjectOnPlane(new_foot_position - contact_point_3d, contact.normal) + contact_point_3d;
-            }
 
-            foot.transform.position = new_foot_position;
+            for(int j = 0; j < segment_count; j++)
+            {
+                segment = leg.segments[j];
+                segment_length = end_point - start_point;
+                angle = Vector3.SignedAngle(this.bodyController.forward, segment_length, Vector3.forward) + 90f;
+
+                segment.transform.position = start_point + segment_length * 0.5f;
+                segment.transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+                //segment.transform.Rotate(Vector3.forward, 90);
+                //segment.transform.LookAt(end_point, Vector3.forward);
+
+                start_point = end_point;
+                end_point = foot.transform.position;
+            }
         }
     }
 
@@ -259,6 +297,16 @@ public class AutoLimbHip : MonoBehaviour
     public AutoLimbFeet FeetController
     {
         get { return this.feetController; }
+    }
+
+    private AutoLimb GetBodyController(GameObject parent)
+    {
+        AutoLimb true_parent = parent.GetComponent<AutoLimb>();
+        if (true_parent != null)
+        {
+            return true_parent;
+        }
+        return this.GetBodyController(parent.GetComponent<AutoLimbHip>().parent);
     }
 
     /// <summary>

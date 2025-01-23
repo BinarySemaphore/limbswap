@@ -1,0 +1,9 @@
+delta magnitude is total distance changed.
+1) Make sure above is distance over surface
+2) Take surface distance as distance traveled over perimeter of circle
+3) Use circle formula or ratios to get phase delta
+4) Apply delta for coordinating feet.
+
+For point one:
+    Instead of using delta space change.
+    Use space change from last ground ray cast

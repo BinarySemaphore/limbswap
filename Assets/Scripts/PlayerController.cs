@@ -18,6 +18,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private Animator animator;
     [SerializeField]
+    private AutoLimb procAnimatorBody;
+    [SerializeField]
     private float speed = 20f;
     [SerializeField]
     private float in_air_speed = 5f;
@@ -88,6 +90,17 @@ public class PlayerController : MonoBehaviour
             Mathf.Clamp(this.body.linearVelocity.x, -this.max_horizontal_speed, this.max_horizontal_speed),
             Mathf.Clamp(this.body.linearVelocity.y, -this.max_vertical_speed * 10f, this.max_vertical_speed)
         );
+
+        if (this.body.linearVelocity.x > 0.001f)
+        {
+            this.procAnimatorBody.forward = Vector3.right;
+            this.procAnimatorBody.Ambulate();
+        }
+        else if (this.body.linearVelocity.x < -0.001f)
+        {
+            procAnimatorBody.forward = Vector3.left;
+            this.procAnimatorBody.Ambulate();
+        }
 
         // Trigger animations
         if (this.sprite)

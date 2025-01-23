@@ -1,0 +1,21 @@
+See ik_diagram.png
+
+Given:
+We have F_n, X, Y, a, and b
+X = hip location
+Y = foot location
+sum([a, b]) = total length of limb between hip and feet
+
+Goal:
+Find Z
+
+c = ||Y - X||
+t = arccos((c/2) / a)
+
+q = Quaternion from t about XY cross F_n
+Z = q * XY_n * a
+
+Follow up:
+1) Handle unequal segments
+2) Check way without trig calls
+3) Handling multiple segments between X and Y
