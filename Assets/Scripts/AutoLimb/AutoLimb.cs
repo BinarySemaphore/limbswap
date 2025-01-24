@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public enum AutoLimbState
@@ -5,6 +6,12 @@ public enum AutoLimbState
     Disabled,
     Paused,
     Engaged
+}
+
+[Serializable]
+public class Limb
+{
+    public GameObject[] segments;
 }
 
 public class AutoLimb : MonoBehaviour
