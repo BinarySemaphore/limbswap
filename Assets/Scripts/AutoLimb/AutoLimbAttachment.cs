@@ -17,9 +17,15 @@ public class AutoLimbAttachment : MonoBehaviour
     protected GameObject debugArrow;
     protected GameObject debugCircle;
 
+
+    [HideInInspector]
+    public float clock;
+
     [Tooltip("Hip will lower to surface to resolve gate; distance to parent maintained by spring")]
     public GameObject parent;
     public bool influencesBodyPosition = false;
+    [Range(-10f, 10f)]
+    public float clockRatio = 1f;
 
     [SerializeField]
     [Range(0.01f, 0.99f)]
@@ -37,6 +43,7 @@ public class AutoLimbAttachment : MonoBehaviour
 
     private void Start()
     {
+        this.clock = 0f;
         this.bodyController = this.GetBodyController(this.parent);
         this.endpointController = this.GetComponentInChildren<AutoLimbEndpoint>();
 
@@ -56,6 +63,10 @@ public class AutoLimbAttachment : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (this.state != AutoLimbState.Engaged) return;
+        this.clock += this.bodyController.deltaClock * this.clockRatio;
+        this.clock = Utils.Mod(this.clock, Utils.FULL_TURN);
+
         this.forward = this.bodyController.forward;
         this.PositionEndpointsAndAttachmentWithParent();
 
@@ -68,6 +79,12 @@ public class AutoLimbAttachment : MonoBehaviour
                 throw new Exception("Limbs And Segments, number of limbs needs to match endpoint's number of children");
             }
             ConstructEndpointsAndSegments();
+        }
+
+        if (this.animateCalled)
+        {
+            this.animateCalled = false;
+            this.state = AutoLimbState.Paused;
         }
     }
     protected virtual void Initialize()
@@ -154,6 +171,11 @@ public class AutoLimbAttachment : MonoBehaviour
             this.transform.position + this.focusPoint * this.endpointToAttachmentLength,
             this.endpointController.gameObject
         );
+    }
+
+    public void syncClock()
+    {
+        this.clock = this.bodyController.clock;
     }
 
     public AutoLimbEndpoint EndpointController

@@ -7,6 +7,8 @@ public class AutoLimbShoulder : AutoLimbAttachment
 
     [Range(0.01f, 0.99f)]
     public float liftPercent = 0.2f;
+    public float pathModifier = 0.5f;
+    public float speedModifier = 0.5f;
 
     protected override void Initialize()
     {
@@ -15,7 +17,7 @@ public class AutoLimbShoulder : AutoLimbAttachment
         float phase_step = Utils.FULL_TURN / this.endpointController.Terminals.Length;
         for (int i = 0; i < this.endpointController.Terminals.Length; i++)
         {
-            this.endpointController.Terminals[i].Phase = i * phase_step;
+            this.endpointController.Terminals[i].PhaseOffset = i * phase_step;
         }
     }
 
@@ -32,24 +34,28 @@ public class AutoLimbShoulder : AutoLimbAttachment
     private void UpdateHandsReciprocating(Vector3 delta)
     {
         Vector3 new_hand_position;
+        float phase;
 
         Vector3 normal = this.transform.position - this.bodyController.transform.position;
-        float radius = this.endpointToAttachmentLength * 0.5f;
-        float circumferance = Utils.FULL_TURN * radius * this.liftPercent;
-        // Angle is radians full circle * ratio; ratio is distance over circumferance
-        // Simplified from 2f * Mathf.PI * (delta.magnitude / (surface_distance * Mathf.PI))
-        float phase_delta = 2f * (delta.magnitude / circumferance);
+        float radius = this.endpointToAttachmentLength * 0.5f * this.pathModifier;
 
         float phase_direction = Vector3.Cross(normal, delta).z;
-        if (phase_direction < 0) phase_delta = -phase_delta;
+        if (phase_direction < 0) phase_direction = -1f;
+        else phase_direction = 1f;
+
+        this.endpointController.transform.position = new Vector3(
+            this.bodyController.forward.x * 0.1f + this.transform.position.x,
+            this.endpointController.transform.position.y,
+            this.endpointController.transform.position.z
+        );
 
         foreach (AutoLimbTerminal terminal in this.endpointController.Terminals)
         {
-            new_hand_position = this.endpointController.transform.position;
+            phase = this.clock + terminal.PhaseOffset;
 
-            terminal.Phase += phase_delta;
-            new_hand_position.x += radius * Mathf.Cos(terminal.Phase);
-            new_hand_position.y += this.liftPercent * radius * Mathf.Sin(terminal.Phase);
+            new_hand_position = this.endpointController.transform.position;
+            new_hand_position.x += radius * Mathf.Cos(phase);
+            new_hand_position.y += this.liftPercent * radius * Mathf.Sin(phase);
 
             terminal.gameObject.transform.position = new_hand_position;
         }

@@ -6,36 +6,38 @@ using UnityEngine;
 public class AutoLimbTerminal
 {
     public GameObject gameObject;
-    private float phase;
-    private Stack<float> stashedPhase;
+    private float phaseOffset = 0f;
+    private Stack<float> stashedPhaseOffset = new Stack<float>(10);
 
-    private void KeepPhaseInRange()
+    private void KeepPhaseOffsetInRange()
     {
-        if (this.phase > Utils.FULL_TURN || this.phase < 0f)
+        if (this.phaseOffset > Utils.FULL_TURN || this.phaseOffset < 0f)
         {
-            this.phase = Utils.Mod(this.phase, Utils.FULL_TURN);
+            this.phaseOffset = Utils.Mod(this.phaseOffset, Utils.FULL_TURN);
         }
     }
 
-    public float Phase
+    public float PhaseOffset
     {
-        get { return this.phase; }
+        get { return this.phaseOffset; }
         set
         {
-            this.phase = value;
-            this.KeepPhaseInRange();
+            this.phaseOffset = value;
+            this.KeepPhaseOffsetInRange();
         }
     }
 
-    public void StashPhasePush()
+    public bool StashPhasePush()
     {
-        this.stashedPhase.Push(this.phase);
+        if (this.stashedPhaseOffset.Count == 10) return false;
+        this.stashedPhaseOffset.Push(this.phaseOffset);
+        return true;
     }
 
     public void StashPhasePop()
     {
-        if (this.stashedPhase.Count == 0) return;
-        this.phase = this.stashedPhase.Pop();
+        if (this.stashedPhaseOffset.Count == 0) return;
+        this.phaseOffset = this.stashedPhaseOffset.Pop();
     }
 }
 
@@ -52,7 +54,7 @@ public class AutoLimbEndpoint : MonoBehaviour
         {
             this.terminals[i] = new AutoLimbTerminal();
             this.terminals[i].gameObject = this.transform.GetChild(i).gameObject;
-            this.terminals[i].Phase = 0f;
+            this.terminals[i].PhaseOffset = 0f;
         }
 
         this.Initialize();
@@ -73,7 +75,7 @@ public class AutoLimbEndpoint : MonoBehaviour
         for (int i = 0; i < this.terminals.Length; i++)
         {
             output += this.terminals[i].gameObject.ToString();
-            output += $" phase={(Mathf.Rad2Deg * this.terminals[i].Phase).ToString("f2")}";
+            output += $" phase={(Mathf.Rad2Deg * this.terminals[i].PhaseOffset).ToString("f2")}";
             if (i < this.terminals.Length - 1) output += ", ";
         }
         output += "])";
