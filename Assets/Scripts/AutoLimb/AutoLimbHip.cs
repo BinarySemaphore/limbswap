@@ -15,7 +15,7 @@ public class AutoLimbHip : AutoLimbAttachment
     {
         this.debugArrow = GameObject.Find("debugArrow");
         this.currentPhase = 0f;
-        this.phaseShift = Utils.FULL_TURN / this.endpointController.Endpoints.Length;
+        this.phaseShift = Utils.FULL_TURN / this.endpointController.Terminals.Length;
         // TODO: Allow some way for unity ui to specify phases (eg cheetah vs horse vs spider/crab vs robot)
 
         // Initialize each foot's state as pushing or lifting and phase.
@@ -63,9 +63,9 @@ public class AutoLimbHip : AutoLimbAttachment
                 surface_rel_pos_delta = Vector3.ProjectOnPlane(surface_rel_pos_delta, contact.normal + this.lastSurfaceContact.normal);
                 this.UpdateFeetMoving(surface_rel_pos_delta, contact);
 
-                if (this.ambulateCalled)
+                if (this.animateCalled)
                 {
-                    this.ambulateCalled = false;
+                    this.animateCalled = false;
                     this.state = AutoLimbState.Paused;
                 }
             }
@@ -84,9 +84,9 @@ public class AutoLimbHip : AutoLimbAttachment
         Vector3 new_foot_position;
         Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.transform.position.z);
 
-        for (int i = 0; i < this.endpointController.Endpoints.Length; i++)
+        for (int i = 0; i < this.endpointController.Terminals.Length; i++)
         {
-            foot = this.endpointController.Endpoints[i];
+            foot = this.endpointController.Terminals[i].gameObject;
             new_foot_position = foot.transform.position + 0.1f * (contact_point_3d - foot.transform.position);
             foot.transform.position = new_foot_position;
         }
@@ -119,9 +119,9 @@ public class AutoLimbHip : AutoLimbAttachment
         this.currentPhase = Utils.Mod(this.currentPhase, 2f * Mathf.PI);
 
         // Set individual foot positions by phase; TODO: refactor into single function
-        for (int i = 0; i < this.endpointController.Endpoints.Length; i++)
+        for (int i = 0; i < this.endpointController.Terminals.Length; i++)
         {
-            foot = this.endpointController.Endpoints[i];
+            foot = this.endpointController.Terminals[i].gameObject;
             foot_phase = Utils.Mod(this.currentPhase + i * this.phaseShift,  2f * Mathf.PI);
 
             new_foot_position = new Vector3(
