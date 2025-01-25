@@ -37,7 +37,7 @@ public class CameraFollow : MonoBehaviour
         if (this.textFPS != null)
         {
             float fps = 1f / Time.smoothDeltaTime;
-            this.textFPS.text = $"FPS: {fps.ToString("f1")}";
+            this.textFPS.text = $"FPS: {fps:f1}";
         }
     }
 

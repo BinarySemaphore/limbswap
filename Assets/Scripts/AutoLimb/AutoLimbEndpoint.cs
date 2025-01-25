@@ -88,7 +88,7 @@ public class AutoLimbEndpoint : MonoBehaviour
         for (int i = 0; i < this.terminals.Length; i++)
         {
             output += this.terminals[i].gameObject.ToString();
-            output += $" phase={(Mathf.Rad2Deg * this.terminals[i].PhaseOffset).ToString("f2")}";
+            output += $" phase={(Mathf.Rad2Deg * this.terminals[i].PhaseOffset):f2)}";
             if (i < this.terminals.Length - 1) output += ", ";
         }
         output += "])";

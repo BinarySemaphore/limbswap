@@ -44,8 +44,7 @@ public class AutoLimbAttachment : MonoBehaviour
     private void Start()
     {
         this.clock = 0f;
-        this.bodyController = this.GetBodyController(this.parent);
-        this.endpointController = this.GetComponentInChildren<AutoLimbEndpoint>();
+        this.populateControllers();
 
         Vector3 parent_to_attachment = this.transform.position - this.parent.transform.position;
         Vector3 attachment_to_endpoint = this.endpointController.transform.position - this.transform.position;
@@ -87,6 +86,12 @@ public class AutoLimbAttachment : MonoBehaviour
             this.state = AutoLimbState.Paused;
         }
     }
+    private void populateControllers()
+    {
+        if (this.bodyController == null) this.bodyController = this.GetBodyController(this.parent);
+        if (this.endpointController == null) this.endpointController = this.GetComponentInChildren<AutoLimbEndpoint>();
+    }
+
     protected virtual void Initialize()
     {
         throw new NotImplementedException("PositionEndpoints must be implemented in inherited class");
@@ -180,7 +185,11 @@ public class AutoLimbAttachment : MonoBehaviour
 
     public AutoLimbEndpoint EndpointController
     {
-        get { return this.endpointController; }
+        get
+        {
+            if ( this.endpointController == null) this.populateControllers();
+            return this.endpointController;
+        }
     }
 
     private AutoLimb GetBodyController(GameObject parent)
