@@ -1,26 +1,23 @@
 using System;
+using System.Net.Mime;
 using UnityEngine;
 
 public class AutoLimbHip : AutoLimbAttachment
 {
     private RaycastHit2D lastSurfaceContact;
-    private float currentPhase;
-    private float phaseShift;
 
-    [SerializeField]
     [Range(0.01f, 0.99f)]
-    private float gatePercent = 0.3f;
+    public float gatePercent = 0.3f;
+    [Range(0.01f, 0.99f)]
+    public float liftPercent = 0.1f;
 
     protected override void Initialize()
     {
-        this.debugArrow = GameObject.Find("debugArrow");
-        this.currentPhase = 0f;
-        this.phaseShift = Utils.FULL_TURN / this.endpointController.Terminals.Length;
-        // TODO: Allow some way for unity ui to specify phases (eg cheetah vs horse vs spider/crab vs robot)
-
-        // Initialize each foot's state as pushing or lifting and phase.
-        // This is very important to develop a cadence for the animation.
-        // TODO: reimplement
+        float phase_step = Utils.FULL_TURN / this.endpointController.Terminals.Length;
+        for (int i = 0; i < this.endpointController.Terminals.Length; i++)
+        {
+            this.endpointController.Terminals[i].PhaseOffset = i * phase_step;
+        }
     }
 
     protected override void PositionEndpoints()
@@ -33,27 +30,14 @@ public class AutoLimbHip : AutoLimbAttachment
             this.maxExtension,
             LayerMask.GetMask("Surface")
         );
-        if (contact)
-        {
-            this.debugArrow.SetActive(true);
-            this.debugArrow.transform.position = new Vector3(contact.point.x, contact.point.y, -3f);
-            this.debugArrow.transform.LookAt(
-                new Vector3(
-                    this.debugArrow.transform.position.x + contact.normal.x,
-                    this.debugArrow.transform.position.y + contact.normal.y,
-                    this.debugArrow.transform.position.z),
-                Vector3.forward
-            );
-        }
-        else this.debugArrow.SetActive(false);
 
         // TODO: Maybe sketchy doing vector2 to vector3 assignment. For safety, probably best to clean up explicitly.
         if (this.lastSurfaceContact) surface_rel_pos_delta = contact.point - this.lastSurfaceContact.point;
 
+        // Walking / Running
         if (contact)
         {
-
-            if (this.state == AutoLimbState.Engaged && surface_rel_pos_delta.magnitude > 0.05f)
+            if (surface_rel_pos_delta.magnitude > 0.05f)
             {
 
                 Vector3 new_hip_position = this.transform.position - new Vector3(contact.point.x, contact.point.y, 0.0f);
@@ -62,27 +46,22 @@ public class AutoLimbHip : AutoLimbAttachment
 
                 surface_rel_pos_delta = Vector3.ProjectOnPlane(surface_rel_pos_delta, contact.normal + this.lastSurfaceContact.normal);
                 this.UpdateFeetMoving(surface_rel_pos_delta, contact);
-
-                if (this.animateCalled)
-                {
-                    this.animateCalled = false;
-                    this.state = AutoLimbState.Paused;
-                }
             }
+            // Standing / Idle
             else
             {
                 this.UpdateFeetStanding(contact);
             }
-
-            this.lastSurfaceContact = contact;
         }
+
+        this.lastSurfaceContact = contact;
     }
 
     private void UpdateFeetStanding(RaycastHit2D contact)
     {
         GameObject foot;
         Vector3 new_foot_position;
-        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.transform.position.z);
+        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.endpointController.transform.position.z);
 
         for (int i = 0; i < this.endpointController.Terminals.Length; i++)
         {
@@ -94,47 +73,29 @@ public class AutoLimbHip : AutoLimbAttachment
 
     private void UpdateFeetMoving(Vector3 delta, RaycastHit2D contact)
     {
-        float foot_phase;
-        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.transform.position.z);
-        Vector3 new_foot_position;
-        GameObject foot;
 
         if (delta.magnitude < 0.01f) return;
 
-        // TODO: If/When updating foot travel path to circle/oval make sure this get's updated for percent covered circumference
-        float distance_to_hip = (this.transform.position - contact_point_3d).magnitude;
-        float surface_distance = 2f * Mathf.Sqrt(
-            Mathf.Pow(this.maxExtension, 2f) -
-            Mathf.Pow(distance_to_hip, 2f)
-        );
-        float available_distance = Mathf.PI * surface_distance + surface_distance;
-        // Angle is radians full circle * ratio; ratio is distance over circumferance
-        // Simplified from 2f * Mathf.PI * (delta.magnitude / (surface_distance * Mathf.PI))
-        float phase_delta = 2f * (delta.magnitude / surface_distance);
+        float phase;
+        Vector3 new_foot_position;
+        Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.endpointController.transform.position.z);
+        Vector3 contact_normal_3d = new Vector3(contact.normal.x, contact.normal.y, this.endpointController.transform.position.z);
+        Vector3 contact_tangent = Quaternion.AngleAxis(-90f, Vector3.forward) * contact_normal_3d;
 
-        // Update feet positioning phase
-        float phase_direction = Vector3.Cross(contact.normal, delta).z;
-        if (phase_direction > 0) this.currentPhase += phase_delta;
-        else this.currentPhase -= phase_delta;
-        this.currentPhase = Utils.Mod(this.currentPhase, 2f * Mathf.PI);
+        // Set to half line intersection of circle with diameter maxExtension
+        // Need to calc distance to ground as gatePercent has changed it (could save time by estimating with maxExtension * gatePercent)
+        float distance_to_ground = (this.transform.position - contact_point_3d).magnitude;
+        float radius = Mathf.Sqrt(Mathf.Pow(this.maxExtension, 2f) - Mathf.Pow(distance_to_ground, 2f));
 
-        // Set individual foot positions by phase; TODO: refactor into single function
-        for (int i = 0; i < this.endpointController.Terminals.Length; i++)
+        foreach (AutoLimbTerminal terminal in this.endpointController.Terminals)
         {
-            foot = this.endpointController.Terminals[i].gameObject;
-            foot_phase = Utils.Mod(this.currentPhase + i * this.phaseShift,  2f * Mathf.PI);
+            phase = Utils.Mod(this.clock + terminal.PhaseOffset, Utils.FULL_TURN);
 
-            new_foot_position = new Vector3(
-                Mathf.Cos(foot_phase) * surface_distance * 0.5f + contact_point_3d.x,
-                Mathf.Sin(foot_phase) * surface_distance * 0.5f + contact_point_3d.y,
-                contact_point_3d.z
-            );
-            if (foot_phase <= 2 * Mathf.PI && foot_phase > Mathf.PI)
-            {
-                new_foot_position = Vector3.ProjectOnPlane(new_foot_position - contact_point_3d, contact.normal) + contact_point_3d;
-            }
+            new_foot_position = contact_point_3d;
+            new_foot_position += contact_tangent * (radius * Mathf.Cos(phase));
+            if (phase <= Utils.HALF_TURN) new_foot_position += contact_normal_3d * (radius * this.liftPercent * Mathf.Sin(phase));
 
-            foot.transform.position = new_foot_position;
+            terminal.gameObject.transform.position = new_foot_position;
         }
     }
 }

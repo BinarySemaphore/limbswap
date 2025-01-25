@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class EnemyController : MonoBehaviour
 {
     private const string GROUND_TAG = "Ground";
     private const string INPUT_JUMP = "Jump";
@@ -39,6 +39,7 @@ public class PlayerController : MonoBehaviour
         this.on_ground = false;
         this.extend_jump = 0;
         this.jump_speed /= this.slice_jump;
+        this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[1].PhaseOffset = Utils.QUARTER_TURN * 0.25f;
     }
 
     private void OnTriggerStay2D(Collider2D collision)
@@ -100,30 +101,13 @@ public class PlayerController : MonoBehaviour
 
         if (this.on_ground)
         {
-            // TODO: if want feet to move automatically with ground this is where to do it now
-            // How to: calc clock ratio as target over 1 revolution per sec
-            // target is angular velocity (radians per sec) from linear velocity of surface speed
             if (this.body.linearVelocity.x > 0.001f)
             {
-                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
                 this.procAnimatorBody.forward = Vector3.right;
-                if (this.procAnimatorBody.shoulderControllers[0].clockRatio > 0)
-                {
-                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
-                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
-                }
-                this.procAnimatorBody.shoulderControllers[0].Animate();
             }
             else if (this.body.linearVelocity.x < -0.001f)
             {
-                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
                 this.procAnimatorBody.forward = Vector3.left;
-                if (this.procAnimatorBody.shoulderControllers[0].clockRatio < 0)
-                {
-                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
-                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
-                }
-                this.procAnimatorBody.shoulderControllers[0].Animate();
             }
             this.procAnimatorBody.hipContollers[0].Animate();
 

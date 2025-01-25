@@ -39,10 +39,7 @@ public class AutoLimbShoulder : AutoLimbAttachment
         Vector3 normal = this.transform.position - this.bodyController.transform.position;
         float radius = this.endpointToAttachmentLength * 0.5f * this.pathModifier;
 
-        float phase_direction = Vector3.Cross(normal, delta).z;
-        if (phase_direction < 0) phase_direction = -1f;
-        else phase_direction = 1f;
-
+        // Move hands in front of body
         this.endpointController.transform.position = new Vector3(
             this.bodyController.forward.x * 0.1f + this.transform.position.x,
             this.endpointController.transform.position.y,
@@ -51,7 +48,7 @@ public class AutoLimbShoulder : AutoLimbAttachment
 
         foreach (AutoLimbTerminal terminal in this.endpointController.Terminals)
         {
-            phase = this.clock + terminal.PhaseOffset;
+            phase = Utils.Mod(this.clock + terminal.PhaseOffset, Utils.FULL_TURN);
 
             new_hand_position = this.endpointController.transform.position;
             new_hand_position.x += radius * Mathf.Cos(phase);
