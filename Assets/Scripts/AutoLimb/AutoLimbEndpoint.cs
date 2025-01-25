@@ -43,21 +43,31 @@ public class AutoLimbTerminal
 
 public class AutoLimbEndpoint : MonoBehaviour
 {
+    private bool populatedTerminals = false;
     private AutoLimbTerminal[] terminals;
 
     private void Start()
     {
-        int endpoint_count = this.transform.childCount;
-        this.terminals = new AutoLimbTerminal[endpoint_count];
-
-        for (int i = 0; i < endpoint_count; i++)
-        {
-            this.terminals[i] = new AutoLimbTerminal();
-            this.terminals[i].gameObject = this.transform.GetChild(i).gameObject;
-            this.terminals[i].PhaseOffset = 0f;
-        }
-
+        this.populateTerminals();
         this.Initialize();
+    }
+
+    private void populateTerminals()
+    {
+        if (!this.populatedTerminals)
+        {
+            int endpoint_count = this.transform.childCount;
+            this.terminals = new AutoLimbTerminal[endpoint_count];
+
+            for (int i = 0; i < endpoint_count; i++)
+            {
+                this.terminals[i] = new AutoLimbTerminal();
+                this.terminals[i].gameObject = this.transform.GetChild(i).gameObject;
+                this.terminals[i].PhaseOffset = 0f;
+            }
+
+            this.populatedTerminals = true;
+        }
     }
 
     protected void Initialize()
@@ -66,7 +76,10 @@ public class AutoLimbEndpoint : MonoBehaviour
 
     public AutoLimbTerminal[] Terminals
     {
-        get { return this.terminals; }
+        get {
+            if (!this.populatedTerminals) this.populateTerminals();
+            return this.terminals;
+        }
     }
 
     public override string ToString()

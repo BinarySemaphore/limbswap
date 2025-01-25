@@ -1,12 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CameraFollow : MonoBehaviour
 {
     private float x_min, x_max;
     private float y_min, y_max;
     private Camera cam;
+
+    public TextMeshProUGUI textFPS;
 
     [SerializeField]
     private GameObject target;
@@ -28,11 +32,22 @@ public class CameraFollow : MonoBehaviour
         this.cam = this.GetComponent<Camera>();
     }
 
+    private void Update()
+    {
+        if (this.textFPS != null)
+        {
+            float fps = 1f / Time.smoothDeltaTime;
+            this.textFPS.text = $"FPS: {fps.ToString("f1")}";
+        }
+    }
+
     // Update is called once per frame
     void FixedUpdate()
     {
+        if (this.target == null) return;
+
         Vector3 delta_position = Vector3.zero;
-        Vector3 target_location = this.cam.WorldToViewportPoint(target.transform.position);
+        Vector3 target_location = this.cam.WorldToViewportPoint(this.target.transform.position);
 
         if (target_location.x < this.x_min) delta_position.x -= (this.x_min - target_location.x) * stiffness;
         else if (target_location.x > this.x_max) delta_position.x += (target_location.x - this.x_max) * stiffness;
