@@ -12,12 +12,13 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D body;
     private bool on_ground;
     private int extend_jump;
-    private float[] jump_speed_slices;
 
     [SerializeField]
     private SpriteRenderer sprite;
     [SerializeField]
     private Animator animator;
+    [SerializeField]
+    private AutoLimb procAnimatorBody;
     [SerializeField]
     private float speed = 20f;
     [SerializeField]
@@ -67,7 +68,7 @@ public class PlayerController : MonoBehaviour
         {
             if (this.extend_jump > 0) this.extend_jump -= 1;
             if (this.on_ground) this.extend_jump = this.slice_jump;
-            move_delta.y += this.jump_speed;//this.jump_speed_slices[this.extend_jump];
+            move_delta.y += this.jump_speed;
         }
         if (Mathf.Abs(horizontal_intput) > 0.1f)
         {
@@ -91,19 +92,52 @@ public class PlayerController : MonoBehaviour
         );
 
         // Trigger animations
-        if (this.body.linearVelocity.x > 0.001f) this.sprite.flipX = true;
-        else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
+        if (this.sprite)
+        {
+            if (this.body.linearVelocity.x > 0.001f) this.sprite.flipX = true;
+            else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
+        }
 
         if (this.on_ground)
         {
-            float ground_speed = Mathf.Abs(this.body.linearVelocity.x);
-            if (ground_speed < 0.001f) this.animator.SetTrigger("Idle");
-            else if (ground_speed < this.max_horizontal_speed * 0.75f) this.animator.SetTrigger("Walking");
-            else this.animator.SetTrigger("Running");
+            // TODO: if want feet to move automatically with ground this is where to do it now
+            // How to: calc clock ratio as target over 1 revolution per sec
+            // target is angular velocity (radians per sec) from linear velocity of surface speed
+            if (this.body.linearVelocity.x > 0.001f)
+            {
+                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
+                this.procAnimatorBody.forward = Vector3.right;
+                if (this.procAnimatorBody.shoulderControllers[0].clockRatio > 0)
+                {
+                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
+                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
+                }
+                this.procAnimatorBody.shoulderControllers[0].Animate();
+            }
+            else if (this.body.linearVelocity.x < -0.001f)
+            {
+                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
+                this.procAnimatorBody.forward = Vector3.left;
+                if (this.procAnimatorBody.shoulderControllers[0].clockRatio < 0)
+                {
+                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
+                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
+                }
+                this.procAnimatorBody.shoulderControllers[0].Animate();
+            }
+            this.procAnimatorBody.hipContollers[0].Animate();
+
+            if (animator)
+            {
+                float ground_speed = Mathf.Abs(this.body.linearVelocity.x);
+                if (ground_speed < 0.001f) this.animator.SetTrigger("Idle");
+                else if (ground_speed < this.max_horizontal_speed * 0.75f) this.animator.SetTrigger("Walking");
+                else this.animator.SetTrigger("Running");
+            }
         }
         else
         {
-            this.animator.SetTrigger("InAir");
+            if (animator) this.animator.SetTrigger("InAir");
         }
     }
 }
