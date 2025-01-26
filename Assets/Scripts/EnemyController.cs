@@ -11,6 +11,7 @@ public class EnemyController : MonoBehaviour
 
     private Rigidbody2D body;
     private bool on_ground;
+    private bool needSetFeetPhase;
     private int extend_jump;
 
     [SerializeField]
@@ -39,7 +40,8 @@ public class EnemyController : MonoBehaviour
         this.on_ground = false;
         this.extend_jump = 0;
         this.jump_speed /= this.slice_jump;
-        this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[1].PhaseOffset = Utils.QUARTER_TURN * 0.25f;
+        this.needSetFeetPhase = true;
+        //this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[1].PhaseOffset = Utils.QUARTER_TURN * 0.25f;
     }
 
     private void OnTriggerStay2D(Collider2D collision)
@@ -53,8 +55,44 @@ public class EnemyController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (this.needSetFeetPhase)
+        {
+            this.needSetFeetPhase = false;
+            // For front
+            this.procAnimatorBody.hipContollers[1].EndpointController.Terminals[0].PhaseOffset = Utils.HALF_TURN;
+            this.procAnimatorBody.hipContollers[1].EndpointController.Terminals[1].PhaseOffset = Utils.HALF_TURN + Utils.QUARTER_TURN * 0.5f;
+            // For back
+            this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[1].PhaseOffset = Utils.QUARTER_TURN * 0.25f;
+        }
+
         Vector2 move_delta = this.GetMoveDeltaFromInput();
         this.UpdateMovement(move_delta);
+
+        float target_angle = 90f;
+        RaycastHit2D contact = Physics2D.Raycast(this.transform.position, Vector2.down, 2f, LayerMask.GetMask("Surface"));
+        if (contact)
+        {
+            target_angle += Vector2.SignedAngle(Vector2.up, contact.normal);
+            if (Mathf.Abs(this.transform.rotation.eulerAngles.z - target_angle) > 0.01f)
+            {
+                this.transform.rotation = Quaternion.Euler(
+                    this.transform.rotation.eulerAngles.x,
+                    this.transform.rotation.eulerAngles.y,
+                    Utils.Mod(Utils.SpringResolve(0.15f, this.transform.rotation.eulerAngles.z, target_angle), 360f)
+                );
+            }
+        }
+        else if (Mathf.Abs(this.transform.rotation.eulerAngles.z - target_angle) > 0.01f)
+        {
+            this.transform.rotation = Quaternion.Euler(
+                this.transform.rotation.eulerAngles.x,
+                this.transform.rotation.eulerAngles.y,
+                Utils.Mod(Utils.SpringResolve(0.15f, this.transform.rotation.eulerAngles.z, target_angle), 360f)
+            );
+        }
+        //this.transform.Rotate(new Vector3(0f, 0f, 0.1f));
+        //this.transform.rotation = Quaternion.Euler(0f, 0f, this.transform.rotation.eulerAngles.z + 0.1f);
+
 
         // Clear/reset triggered bools for next frame
         this.on_ground = false;
@@ -99,17 +137,42 @@ public class EnemyController : MonoBehaviour
             else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
         }
 
-        if (this.on_ground)
+        if (this.on_ground && this.procAnimatorBody != null)
         {
             if (this.body.linearVelocity.x > 0.001f)
             {
                 this.procAnimatorBody.forward = Vector3.right;
+                if (this.procAnimatorBody.clockSpeed > 0)
+                {
+                    this.procAnimatorBody.clockSpeed *= -1f;
+                    // For front
+                    this.procAnimatorBody.hipContollers[1].gatePercent = 0.25f;
+                    this.procAnimatorBody.hipContollers[1].EndpointController.Terminals[0].PhaseOffset = Utils.HALF_TURN;
+                    this.procAnimatorBody.hipContollers[1].EndpointController.Terminals[1].PhaseOffset = Utils.HALF_TURN + Utils.QUARTER_TURN * 0.5f;
+                    // For back
+                    this.procAnimatorBody.hipContollers[0].gatePercent = 0.4f;
+                    this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[0].PhaseOffset = 0f;
+                    this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[1].PhaseOffset = Utils.QUARTER_TURN * 0.25f;
+                }
             }
             else if (this.body.linearVelocity.x < -0.001f)
             {
                 this.procAnimatorBody.forward = Vector3.left;
+                if (this.procAnimatorBody.clockSpeed < 0)
+                {
+                    this.procAnimatorBody.clockSpeed *= -1f;
+                    // For front
+                    this.procAnimatorBody.hipContollers[1].gatePercent = 0.4f;
+                    this.procAnimatorBody.hipContollers[1].EndpointController.Terminals[0].PhaseOffset = 0f;
+                    this.procAnimatorBody.hipContollers[1].EndpointController.Terminals[1].PhaseOffset = Utils.QUARTER_TURN * 0.25f;
+                    // For back
+                    this.procAnimatorBody.hipContollers[0].gatePercent = 0.25f;
+                    this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[0].PhaseOffset = Utils.HALF_TURN;
+                    this.procAnimatorBody.hipContollers[0].EndpointController.Terminals[1].PhaseOffset = Utils.HALF_TURN + Utils.QUARTER_TURN * 0.5f;
+                }
             }
-            this.procAnimatorBody.hipContollers[0].Animate();
+            //this.procAnimatorBody.hipContollers[0].Animate();
+            //this.procAnimatorBody.hipContollers[1].Animate();
 
             if (animator)
             {

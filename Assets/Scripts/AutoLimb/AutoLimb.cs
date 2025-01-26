@@ -29,9 +29,9 @@ public class AutoLimb : MonoBehaviour
     public AutoLimbShoulder[] shoulderControllers;
     public AutoLimbHip[] hipContollers;
 
-    [SerializeField]
     [Range(0f, 10f)]
-    private float clockSpeed = 1f;
+    public float clockSpeed = 1f;
+
     [SerializeField]
     [Range(0.01f, 0.99f)]
     private float targetAttachmentSpringiness = 0.7f;

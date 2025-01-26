@@ -21,6 +21,16 @@ public static class Utils
         return delta_angle;
     }
 
+    public static float SpringResolve(float spring_coef, float source, float target)
+    {
+        return source + spring_coef * (target - source);
+    }
+
+    public static Vector3 SpringResolve(float spring_corf, Vector3 source, Vector3 target)
+    {
+        return source + spring_corf * (target - source);
+    }
+
     public static void ApplySpringResolveSingle(float target_length, float spring_coef, Vector3 attachment_point, GameObject obj_a)
     {
         Vector3 to_attch_point_diff = attachment_point - obj_a.transform.position;

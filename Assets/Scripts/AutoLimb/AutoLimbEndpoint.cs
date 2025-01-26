@@ -48,6 +48,7 @@ public class AutoLimbEndpoint : MonoBehaviour
 
     private void Start()
     {
+        // TODO: switch to initialize start if any public is called (same way doing for populate controllers)
         this.populateTerminals();
         this.Initialize();
     }

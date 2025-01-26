@@ -17,6 +17,8 @@ public class AutoLimbAttachment : MonoBehaviour
     protected GameObject debugArrow;
     protected GameObject debugCircle;
 
+    private Quaternion lastParentRotation;
+
 
     [HideInInspector]
     public float clock;
@@ -44,6 +46,7 @@ public class AutoLimbAttachment : MonoBehaviour
     private void Start()
     {
         this.clock = 0f;
+        // TODO: switch to initialize start if any public is called (same way doing for populate controllers)
         this.populateControllers();
 
         Vector3 parent_to_attachment = this.transform.position - this.parent.transform.position;
@@ -145,6 +148,13 @@ public class AutoLimbAttachment : MonoBehaviour
         float half_spring_coef = this.attachmentSpringiness * 0.5f;
         if (this.attachmentDirection.magnitude > 1 + NEAR_ZERO) this.attachmentDirection.Normalize();
         if (this.focusPoint.magnitude > 1 + NEAR_ZERO) this.focusPoint.Normalize();
+
+        if (this.lastParentRotation != this.bodyController.transform.rotation)
+        {
+            this.lastParentRotation = this.bodyController.transform.rotation;
+            Quaternion changeInRotation = this.bodyController.transform.rotation * Quaternion.Inverse(this.lastParentRotation);
+            this.attachmentDirection = changeInRotation * this.attachmentDirection;
+        }
 
         if (!this.influencesBodyPosition)
         {
