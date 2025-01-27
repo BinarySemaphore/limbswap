@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum AutoLimbState
@@ -11,7 +12,7 @@ public enum AutoLimbState
 [Serializable]
 public class Limb
 {
-    public GameObject[] segments;
+    public List<GameObject> segments;
 }
 
 public class AutoLimb : MonoBehaviour

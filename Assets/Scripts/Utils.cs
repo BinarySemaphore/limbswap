@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 
 public static class Utils
@@ -6,12 +7,21 @@ public static class Utils
     public const float THREE_QUARTER_TURN = 1.5f * Mathf.PI;
     public const float HALF_TURN = Mathf.PI;
     public const float QUARTER_TURN = 0.5f * Mathf.PI;
+    public const float NEAR_ZERO_LOOSE = 0.001f;
+    public const float NEAR_ZERO = 0.00001f;
 
     public static float Mod(float number, float divisor)
     {
         float value = number % divisor;
         if (value < 0f) value += divisor;
         return value;
+    }
+
+    public static float LerpBounceBack(float a, float b, float t)
+    {
+        float x = Mathf.Lerp(0f, 2f, t);
+        float zero_to_one_back_to_zero = x * (2 - x);
+        return Mathf.Lerp(a, b, zero_to_one_back_to_zero);
     }
 
     public static float ShortestAngle(float start, float target)

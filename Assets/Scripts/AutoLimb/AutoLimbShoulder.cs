@@ -48,6 +48,8 @@ public class AutoLimbShoulder : AutoLimbAttachment
 
         foreach (AutoLimbTerminal terminal in this.endpointController.Terminals)
         {
+            if (!terminal.enabled) continue;
+
             phase = Utils.Mod(this.clock + terminal.PhaseOffset, Utils.FULL_TURN);
 
             new_hand_position = this.endpointController.transform.position;

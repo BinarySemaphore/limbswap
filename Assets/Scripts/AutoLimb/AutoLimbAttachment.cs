@@ -40,8 +40,8 @@ public class AutoLimbAttachment : MonoBehaviour
     protected Vector3 focusPoint = Vector3.zero;
     [SerializeField]
     protected AutoLimbState state = AutoLimbState.Paused;
-    [SerializeField]
-    protected Limb[] limbsAndSegments;
+
+    public Limb[] limbsAndSegments;
 
     private void Start()
     {
@@ -74,7 +74,7 @@ public class AutoLimbAttachment : MonoBehaviour
 
         this.PositionEndpoints();
 
-        if (this.limbsAndSegments.Length > 0 && this.limbsAndSegments[0].segments.Length > 0)
+        if (this.limbsAndSegments.Length > 0)
         {
             if (this.limbsAndSegments.Length != this.endpointController.Terminals.Length)
             {
@@ -107,17 +107,22 @@ public class AutoLimbAttachment : MonoBehaviour
 
     private void ConstructEndpointsAndSegments()
     {
-        int segment_count = this.limbsAndSegments[0].segments.Length;
+        int segment_count;
         float angle;
         Limb limb;
         GameObject terminal, segment;
         Vector3 segment_length, start_point, end_point;
 
-        // TODO: support 1 and 3 or more segment legs
-        if (segment_count != 2) throw new NotImplementedException("Only 2 segment legs are supported");
-
         for (int i = 0; i < this.endpointController.Terminals.Length; i++)
         {
+            if (!this.endpointController.Terminals[i].enabled) continue;
+
+            segment_count = this.limbsAndSegments[i].segments.Count;
+            if (segment_count == 0) continue;
+
+            // TODO: support 1 and 3 or more segment legs
+            if (segment_count != 2) throw new NotImplementedException("Only 2 segment are supported");
+
             terminal = this.endpointController.Terminals[i].gameObject;
             limb = this.limbsAndSegments[i];
             start_point = this.transform.position;

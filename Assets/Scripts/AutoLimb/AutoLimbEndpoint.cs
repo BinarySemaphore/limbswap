@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnityEditor;
 using UnityEngine;
 
 public class AutoLimbTerminal
 {
+    public bool enabled = true;
     public GameObject gameObject;
     private float phaseOffset = 0f;
     private Stack<float> stashedPhaseOffset = new Stack<float>(10);

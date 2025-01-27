@@ -1,7 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,9 +12,17 @@ public class PlayerController : MonoBehaviour
     private const string INPUT_JUMP = "Jump";
     private const string INPUT_HORIZONTAL = "Horizontal";
 
-    private Rigidbody2D body;
+    private bool load_appendages;
     private bool on_ground;
     private int extend_jump;
+    private Rigidbody2D body;
+
+    [SerializeField]
+    private GameObject pickupPrefab;
+    [SerializeField]
+    private GameObject[] attchWpnPrefabArms;
+    [SerializeField]
+    private GameObject[] attchWpnPrefabLegs;
 
     [SerializeField]
     private SpriteRenderer sprite;
@@ -31,12 +42,17 @@ public class PlayerController : MonoBehaviour
     private float max_horizontal_speed = 10f;
     [SerializeField]
     private float max_vertical_speed = 10f;
+    [SerializeField]
+    private PlayerPickupSelector selector;
+    [SerializeField]
+    private GameObject[] AttachmentPrefabList;
 
     // Start is called before the first frame update
     void Start()
     {
-        this.body = this.GetComponent<Rigidbody2D>();
+        this.load_appendages = true;
         this.on_ground = false;
+        this.body = this.GetComponent<Rigidbody2D>();
         this.extend_jump = 0;
         this.jump_speed /= this.slice_jump;
     }
@@ -52,8 +68,64 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (this.load_appendages && this.attchWpnPrefabArms.Length > 0)
+        {
+            this.load_appendages = false;
+            for (int i = 0; i < this.attchWpnPrefabArms.Length; i++) this.AddArmFromPrefab(i, this.attchWpnPrefabArms[i]);
+        }
+
+        // TODO: move all input to Update()
         Vector2 move_delta = this.GetMoveDeltaFromInput();
         this.UpdateMovement(move_delta);
+
+        if (Input.GetKeyUp(KeyCode.Comma))
+        {
+            int arm_index = 0;//Random.Range(0, this.attchWpnPrefabArms.Length);
+            AutoLimbShoulder shoulder = this.procAnimatorBody.shoulderControllers[0];
+
+            if (!shoulder.EndpointController.Terminals[arm_index].enabled)
+            {
+                arm_index = (arm_index + 1) % shoulder.EndpointController.Terminals.Length;
+                if (!shoulder.EndpointController.Terminals[arm_index].enabled) return;
+            }
+            this.DropArm(arm_index);
+            this.attchWpnPrefabArms[arm_index] = null;
+        }
+
+        if (Input.GetKeyUp(KeyCode.Return))
+        {
+            int i;
+            // pick up pickup...
+            Pickup pickup = this.selector.PickupSelection();
+            if (pickup != null && pickup.item != null)
+            {
+                if (pickup.isAttachment)
+                {
+                    int arm_index = -1;
+                    for (i = 0; i < this.procAnimatorBody.shoulderControllers[0].EndpointController.Terminals.Length; i++)
+                    {
+                        if (!this.procAnimatorBody.shoulderControllers[0].EndpointController.Terminals[i].enabled)
+                        {
+                            arm_index = i;
+                            break;
+                        }
+                    }
+                    if (arm_index >= 0)
+                    {
+                        for (i = 0; i < this.AttachmentPrefabList.Length; i++)
+                        {
+                            if (pickup.item.name.StartsWith(this.AttachmentPrefabList[i].name))
+                            {
+                                this.attchWpnPrefabArms[arm_index] = this.AttachmentPrefabList[i];
+                                break;
+                            }
+                        }
+                        this.AddArm(arm_index, pickup.item);
+                        Destroy(pickup.gameObject);
+                    }
+                }
+            }
+        }
 
         // Clear/reset triggered bools for next frame
         this.on_ground = false;
@@ -139,5 +211,73 @@ public class PlayerController : MonoBehaviour
         {
             if (animator) this.animator.SetTrigger("InAir");
         }
+    }
+
+    private void AddArmFromPrefab(int arm_index, GameObject prefab)
+    {
+        GameObject spawn = Instantiate(prefab, Vector3.zero, Quaternion.identity);
+        this.AddArm(arm_index, spawn);
+    }
+    private void AddArm(int arm_index, GameObject existing, bool cleanup=true)
+    {
+        int i = 0;
+        AutoLimbShoulder shoulder = this.procAnimatorBody.shoulderControllers[0];
+
+        GameObject[] children = new GameObject[existing.transform.childCount];
+        for (i = 0; i < existing.transform.childCount; i++)
+        {
+            children[i] = existing.transform.GetChild(i).gameObject;
+        }
+        existing.transform.DetachChildren();
+        if (cleanup) Destroy(existing);
+
+        // TODO: seams reasonable for attaching hand, might need to revist to make explicit hands; maybe by instance name?
+        bool add_hand = children.Length > 1;
+        Vector3 position = Vector3.zero;
+        for (i = 0; i < children.Length; i++)
+        {
+            // Hand
+            if (add_hand && i == children.Length - 1)
+            {
+                children[i].transform.parent = shoulder.EndpointController.Terminals[arm_index].gameObject.transform;
+            }
+            // Segment
+            else
+            {
+                children[i].transform.parent = shoulder.gameObject.transform;
+                shoulder.limbsAndSegments[arm_index].segments.Add(children[i]);
+            }
+            position.z = children[i].transform.position.z;
+            children[i].transform.localPosition = position;
+        }
+        shoulder.EndpointController.Terminals[arm_index].enabled = true;
+    }
+
+    private void DropArm(int arm_index)
+    {
+        AutoLimbShoulder shoulder = this.procAnimatorBody.shoulderControllers[0];
+
+        GameObject weaponPrefab = this.attchWpnPrefabArms[arm_index];
+
+        // Remove
+        shoulder.EndpointController.Terminals[arm_index].enabled = false;
+        Destroy(shoulder.EndpointController.Terminals[arm_index].gameObject.transform.GetChild(0).gameObject);
+        foreach (GameObject segment in shoulder.limbsAndSegments[arm_index].segments) Destroy(segment);
+        shoulder.limbsAndSegments[arm_index].segments.Clear();
+
+        // Drop
+        GameObject pickup = Instantiate(this.pickupPrefab);
+        Pickup pickupCtrl = pickup.GetComponent<Pickup>();
+        GameObject attachment = Instantiate(weaponPrefab, pickup.transform);
+        pickupCtrl.item = attachment;
+        pickupCtrl.isAttachment = true;
+
+        Vector2 initialVelocity = new Vector2(
+            Random.Range(-2f, 2f),
+            Random.Range(1f, 3f)
+        );
+
+        pickup.transform.position = this.transform.position;
+        pickup.GetComponent<Rigidbody2D>().linearVelocity = initialVelocity;
     }
 }
