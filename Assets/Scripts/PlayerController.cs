@@ -202,60 +202,22 @@ public class PlayerController : MonoBehaviour
         if (this.on_ground) delta.x += -this.body.linearVelocity.x;
         this.body.linearVelocity += new Vector2(delta.x, delta.y);
 
-        // Limit velocity
         this.body.linearVelocity = new Vector2(
             Mathf.Clamp(this.body.linearVelocity.x, -this.max_horizontal_speed, this.max_horizontal_speed),
             Mathf.Clamp(this.body.linearVelocity.y, -this.max_vertical_speed * 10f, this.max_vertical_speed)
         );
 
-        // Trigger animations
-        if (this.sprite)
-        {
-            if (this.body.linearVelocity.x > 0.001f) this.sprite.flipX = true;
-            else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
-        }
+        // Flip directions
+        if (this.body.linearVelocity.x > Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.Forward = Vector3.right;
+        else if (this.body.linearVelocity.x < -Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.Forward = Vector3.left;
 
         if (this.on_ground)
         {
             // TODO: if want feet to move automatically with ground this is where to do it now
             // How to: calc clock ratio as target over 1 revolution per sec
             // target is angular velocity (radians per sec) from linear velocity of surface speed
-            if (this.body.linearVelocity.x > 0.001f)
-            {
-                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
-                
-                this.procAnimatorBody.Forward = Vector3.right;
-                if (this.procAnimatorBody.shoulderControllers[0].clockRatio > 0)
-                {
-                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
-                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
-                }
-                this.procAnimatorBody.shoulderControllers[0].Animate();
-            }
-            else if (this.body.linearVelocity.x < -0.001f)
-            {
-                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
-                this.procAnimatorBody.Forward = Vector3.left;
-                if (this.procAnimatorBody.shoulderControllers[0].clockRatio < 0)
-                {
-                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
-                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
-                }
-                this.procAnimatorBody.shoulderControllers[0].Animate();
-            }
+            if (Mathf.Abs(this.body.linearVelocity.x) > Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.shoulderControllers[0].Animate();
             this.procAnimatorBody.hipContollers[0].Animate();
-
-            if (animator)
-            {
-                float ground_speed = Mathf.Abs(this.body.linearVelocity.x);
-                if (ground_speed < 0.001f) this.animator.SetTrigger("Idle");
-                else if (ground_speed < this.max_horizontal_speed * 0.75f) this.animator.SetTrigger("Walking");
-                else this.animator.SetTrigger("Running");
-            }
-        }
-        else
-        {
-            if (animator) this.animator.SetTrigger("InAir");
         }
     }
 

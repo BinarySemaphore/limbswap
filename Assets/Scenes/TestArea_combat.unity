@@ -2606,7 +2606,7 @@ MonoBehaviour:
   clock: 0
   parent: {fileID: 543466284}
   influencesBodyPosition: 0
-  clockRatio: 2
+  clockRatio: -2
   attachmentSpringiness: 0.3
   attachmentDirection: {x: 0, y: 0, z: 0}
   focusPoint: {x: 0, y: 0, z: 0}
@@ -2675,6 +2675,8 @@ MonoBehaviour:
   hipContollers:
   - {fileID: 1644281213}
   clockSpeed: 1
+  autoFlip: 1
+  autoFlipRatios: 1
   targetAttachmentSpringiness: 0.5
 --- !u!1 &619932156
 GameObject:
@@ -4936,7 +4938,7 @@ MonoBehaviour:
   clock: 0
   parent: {fileID: 543466284}
   influencesBodyPosition: 1
-  clockRatio: 1.8
+  clockRatio: -1.8
   attachmentSpringiness: 0.29999998
   attachmentDirection: {x: 0, y: 0, z: 0}
   focusPoint: {x: 0, y: 0, z: 0}

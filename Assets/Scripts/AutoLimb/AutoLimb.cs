@@ -36,6 +36,9 @@ public class AutoLimb : MonoBehaviour
     [Range(0f, 10f)]
     public float clockSpeed = 1f;
 
+    public bool autoFlip = true;
+    public bool autoFlipRatios = true;
+
     [SerializeField]
     [Range(0.01f, 0.99f)]
     private float targetAttachmentSpringiness = 0.7f;
@@ -70,6 +73,9 @@ public class AutoLimb : MonoBehaviour
                 Vector3 new_scale;
                 Vector3 change_normal = (value.normalized - this.forward).normalized;
                 this.forward = value.normalized;
+
+                if (!this.autoFlip) return;
+
                 bool flip_x = Mathf.Abs(change_normal.x) >= Utils.SQRT_HALF;
                 bool flip_y = Mathf.Abs(change_normal.y) >= Utils.SQRT_HALF;
 
@@ -86,6 +92,7 @@ public class AutoLimb : MonoBehaviour
                     shoulder.transform.localScale = new_scale;
                     if (flip_x ^ flip_y)
                     {
+                        if (this.autoFlipRatios) shoulder.clockRatio *= -1f;
                         shoulder.transform.position = new Vector3(
                             shoulder.transform.position.x,
                             shoulder.transform.position.y,
@@ -103,6 +110,7 @@ public class AutoLimb : MonoBehaviour
                     hip.transform.localScale = new_scale;
                     if (flip_x ^ flip_y)
                     {
+                        if (this.autoFlipRatios) hip.clockRatio *= -1f;
                         hip.transform.position = new Vector3(
                             hip.transform.position.x,
                             hip.transform.position.y,
