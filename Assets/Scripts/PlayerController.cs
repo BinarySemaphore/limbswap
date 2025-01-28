@@ -272,6 +272,7 @@ public class PlayerController : MonoBehaviour
         {
             children[i] = existing.transform.GetChild(i).gameObject;
         }
+        existing.transform.position = Vector3.zero;
         existing.transform.DetachChildren();
         if (cleanup) Destroy(existing);
 
@@ -296,6 +297,7 @@ public class PlayerController : MonoBehaviour
             position.z = children[i].transform.position.z;
             children[i].transform.localPosition = position;
             children[i].transform.localScale = scale;
+            children[i].transform.rotation = Quaternion.identity;
         }
         controller.EndpointController.Terminals[limb_index].enabled = true;
         controller.NudgeAfterChange();
