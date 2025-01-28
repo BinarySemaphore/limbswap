@@ -141,7 +141,7 @@ public class EnemyController : MonoBehaviour
         {
             if (this.body.linearVelocity.x > 0.001f)
             {
-                this.procAnimatorBody.forward = Vector3.right;
+                this.procAnimatorBody.Forward = Vector3.right;
                 if (this.procAnimatorBody.clockSpeed > 0)
                 {
                     this.procAnimatorBody.clockSpeed *= -1f;
@@ -157,7 +157,7 @@ public class EnemyController : MonoBehaviour
             }
             else if (this.body.linearVelocity.x < -0.001f)
             {
-                this.procAnimatorBody.forward = Vector3.left;
+                this.procAnimatorBody.Forward = Vector3.left;
                 if (this.procAnimatorBody.clockSpeed < 0)
                 {
                     this.procAnimatorBody.clockSpeed *= -1f;

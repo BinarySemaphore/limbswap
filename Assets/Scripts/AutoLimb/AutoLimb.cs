@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor.Rendering.LookDev;
 using UnityEngine;
 
 public enum AutoLimbState
@@ -12,6 +13,8 @@ public enum AutoLimbState
 [Serializable]
 public class Limb
 {
+    public bool rightSide;
+    public GameObject prefab;
     public List<GameObject> segments;
 }
 
@@ -25,7 +28,7 @@ public class AutoLimb : MonoBehaviour
     public float deltaClock;
 
     public GameObject parent;
-    public Vector3 forward = Vector3.right;
+    private Vector3 forward = Vector3.right;
 
     public AutoLimbShoulder[] shoulderControllers;
     public AutoLimbHip[] hipContollers;
@@ -54,5 +57,61 @@ public class AutoLimb : MonoBehaviour
             this.parent.transform.position,
             this.gameObject
         );
+    }
+
+    public Vector3 Forward
+    {
+        get { return forward; }
+        set
+        {
+            // If changed use scale to flip as needed and reposition for z-depth (this applies to everything)
+            if (this.forward != value)
+            {
+                Vector3 new_scale;
+                Vector3 change_normal = (value.normalized - this.forward).normalized;
+                this.forward = value.normalized;
+                bool flip_x = Mathf.Abs(change_normal.x) >= Utils.SQRT_HALF;
+                bool flip_y = Mathf.Abs(change_normal.y) >= Utils.SQRT_HALF;
+
+                new_scale = this.transform.localScale;
+                if (flip_x) new_scale.x *= -1f;
+                if (flip_y) new_scale.y *= -1f;
+                this.transform.localScale = new_scale;
+
+                foreach (AutoLimbShoulder shoulder in this.shoulderControllers)
+                {
+                    new_scale = shoulder.transform.localScale;
+                    if (flip_x) new_scale.x *= -1f;
+                    if (flip_y) new_scale.y *= -1f;
+                    shoulder.transform.localScale = new_scale;
+                    if (flip_x ^ flip_y)
+                    {
+                        shoulder.transform.position = new Vector3(
+                            shoulder.transform.position.x,
+                            shoulder.transform.position.y,
+                            shoulder.transform.position.z * -1f
+                        );
+                        foreach (Limb limb in shoulder.limbsAndSegments) limb.rightSide = !limb.rightSide;
+                    }
+                }
+
+                foreach (AutoLimbHip hip in this.hipContollers)
+                {
+                    new_scale = hip.transform.localScale;
+                    if (flip_x) new_scale.x *= -1f;
+                    if (flip_y) new_scale.y *= -1f;
+                    hip.transform.localScale = new_scale;
+                    if (flip_x ^ flip_y)
+                    {
+                        hip.transform.position = new Vector3(
+                            hip.transform.position.x,
+                            hip.transform.position.y,
+                            hip.transform.position.z * -1f
+                        );
+                        foreach (Limb limb in hip.limbsAndSegments) limb.rightSide = !limb.rightSide;
+                    }
+                }
+            }
+        }
     }
 }

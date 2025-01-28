@@ -23,9 +23,9 @@ public class AutoLimbShoulder : AutoLimbAttachment
 
     protected override void PositionEndpoints()
     {
-        this.forward = -this.forward;
+        this.ikForward = -this.ikForward;  // this.ikForward is set by parent class to be this.bodyController.Forward every fixed update
 
-        Vector3 delta = Vector3.Project(this.bodyController.transform.position - this.lastPosition, this.forward);
+        Vector3 delta = Vector3.Project(this.bodyController.transform.position - this.lastPosition, this.ikForward);
         this.UpdateHandsReciprocating(delta);
 
         this.lastPosition = this.bodyController.transform.position;
@@ -41,7 +41,7 @@ public class AutoLimbShoulder : AutoLimbAttachment
 
         // Move hands in front of body
         this.endpointController.transform.position = new Vector3(
-            this.bodyController.forward.x * 0.1f + this.transform.position.x,
+            this.bodyController.Forward.x * 0.1f + this.transform.position.x,
             this.endpointController.transform.position.y,
             this.endpointController.transform.position.z
         );

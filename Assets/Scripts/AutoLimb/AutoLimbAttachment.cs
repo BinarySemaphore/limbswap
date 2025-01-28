@@ -10,7 +10,7 @@ public class AutoLimbAttachment : MonoBehaviour
     protected float maxExtension;
     protected float anchorToParentLength;
     protected float endpointToAttachmentLength;
-    protected Vector3 forward;
+    protected Vector3 ikForward;
     protected AutoLimbEndpoint endpointController;
     protected AutoLimb bodyController;
 
@@ -69,7 +69,7 @@ public class AutoLimbAttachment : MonoBehaviour
         this.clock += this.bodyController.deltaClock * this.clockRatio;
         this.clock = Utils.Mod(this.clock, Utils.FULL_TURN);
 
-        this.forward = this.bodyController.forward;
+        this.ikForward = this.bodyController.Forward;
         this.PositionEndpointsAndAttachmentWithParent();
 
         this.PositionEndpoints();
@@ -109,9 +109,10 @@ public class AutoLimbAttachment : MonoBehaviour
     {
         int segment_count;
         float angle;
+        float z_depth;
         Limb limb;
         GameObject terminal, segment;
-        Vector3 segment_length, start_point, end_point;
+        Vector3 start_to_end, start_point, end_point, z_depth_added;
 
         for (int i = 0; i < this.endpointController.Terminals.Length; i++)
         {
@@ -120,26 +121,40 @@ public class AutoLimbAttachment : MonoBehaviour
             segment_count = this.limbsAndSegments[i].segments.Count;
             if (segment_count == 0) continue;
 
-            // TODO: support 1 and 3 or more segment legs
-            if (segment_count != 2) throw new NotImplementedException("Only 2 segment are supported");
+            if (this.limbsAndSegments[i].rightSide) z_depth = -0.1f;
+            else z_depth = 0.1f;
+
+            // TODO: support 3 or more segment legs
+            if (segment_count > 2) throw new NotImplementedException("Only 2 segment are supported");
 
             terminal = this.endpointController.Terminals[i].gameObject;
             limb = this.limbsAndSegments[i];
             start_point = this.transform.position;
-            end_point = Utils.IkSolveTwoSeg(
-                this.transform.position,
-                terminal.transform.position,
-                this.forward,
-                this.endpointToAttachmentLength * 0.5f
-            );
+            if (segment_count == 1) end_point = terminal.transform.position;
+            else
+            {
+                end_point = Utils.IkSolveTwoSeg(
+                    this.transform.position,
+                    terminal.transform.position,
+                    this.ikForward,
+                    this.endpointToAttachmentLength * 0.5f
+                );
+            }
+
+            z_depth_added = terminal.transform.position;
+            z_depth_added.z = this.transform.position.z + z_depth;
+            terminal.transform.position = z_depth_added;
 
             for (int j = 0; j < segment_count; j++)
             {
                 segment = limb.segments[j];
-                segment_length = end_point - start_point;
-                angle = Vector3.SignedAngle(this.forward, segment_length, Vector3.forward) + 90f;
+                start_to_end = end_point - start_point;
+                angle = Vector3.SignedAngle(this.bodyController.Forward, start_to_end, Vector3.forward);
 
-                segment.transform.position = start_point + segment_length * 0.5f;
+                segment.transform.position = start_point + start_to_end * 0.5f;
+                z_depth_added = segment.transform.position;
+                z_depth_added.z = this.transform.position.z + z_depth;
+                segment.transform.position = z_depth_added;
                 segment.transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
 
                 start_point = end_point;
@@ -150,6 +165,7 @@ public class AutoLimbAttachment : MonoBehaviour
 
     private void PositionEndpointsAndAttachmentWithParent()
     {
+        // TODO: fix rel rotational issues when springing to parent
         float half_spring_coef = this.attachmentSpringiness * 0.5f;
         if (this.attachmentDirection.magnitude > 1 + NEAR_ZERO) this.attachmentDirection.Normalize();
         if (this.focusPoint.magnitude > 1 + NEAR_ZERO) this.focusPoint.Normalize();
@@ -196,6 +212,11 @@ public class AutoLimbAttachment : MonoBehaviour
     public void syncClock()
     {
         this.clock = this.bodyController.clock;
+    }
+
+    public void NudgeAfterChange()
+    {
+        this.ConstructEndpointsAndSegments();
     }
 
     public AutoLimbEndpoint EndpointController
