@@ -14,27 +14,43 @@ public class PlayerController : MonoBehaviour
 
     private bool load_appendages;
     private bool on_ground;
-    private int extend_jump;
+    private bool movingRight;
+    private float stopTimer;
+    private float stopPercent;
+    private float walkTimer;
+    private float walkPercent;
+    private float runTimer;
+    private float runPercent;
+    private float velocityToReachJumpHeight;
+    private float hangTimer;
+    private float hangPercent;
+    private float originalGravity;
     private Rigidbody2D body;
 
     [SerializeField]
-    private SpriteRenderer sprite;
+    private float timeToStop = 0.1f;
     [SerializeField]
-    private Animator animator;
+    private float walkSpeed = 5f;
+    [SerializeField]
+    private float timeToReachWalk = 0.5f;
+    [SerializeField]
+    private float runSpeed = 10f;
+    [SerializeField]
+    private float timeToReachRun = 2.0f;
+    [SerializeField]
+    private float jumpHeight = 3f;
+    [SerializeField]
+    private float timeToReachJumpHeight = 0.5f;
+    [SerializeField]
+    private float allowedHangTime = 0.25f;
+    [SerializeField]
+    private float inAirControlPercent = 0.8f;
+    [SerializeField]
+    private float maxHorrizontalSpeed = 20f;
+    [SerializeField]
+    private float maxVerticalSpeed = 20f;
     [SerializeField]
     private AutoLimb procAnimatorBody;
-    [SerializeField]
-    private float speed = 20f;
-    [SerializeField]
-    private float in_air_speed = 5f;
-    [SerializeField]
-    private float jump_speed = 20f;
-    [SerializeField]
-    private int slice_jump = 5;
-    [SerializeField]
-    private float max_horizontal_speed = 10f;
-    [SerializeField]
-    private float max_vertical_speed = 10f;
     [SerializeField]
     private PlayerPickupSelector selector;
     [SerializeField]
@@ -48,8 +64,8 @@ public class PlayerController : MonoBehaviour
         this.load_appendages = true;
         this.on_ground = false;
         this.body = this.GetComponent<Rigidbody2D>();
-        this.extend_jump = 0;
-        this.jump_speed /= this.slice_jump;
+        //this.extend_jump = 0;
+        //this.jumpAcceleration /= this.sliceJumpFrames;
     }
 
     private void OnTriggerStay2D(Collider2D collision)
@@ -57,14 +73,14 @@ public class PlayerController : MonoBehaviour
         if (!this.on_ground && collision.CompareTag(GROUND_TAG))
         {
             this.on_ground = true;
-            this.extend_jump = 0;
+            //this.extend_jump = 0;
         }
     }
 
     private void Update()
     {
-        Vector2 move_delta = this.GetMoveDeltaFromInput();
-        this.UpdateMovement(move_delta);
+        //Vector2 move_delta = this.GetMoveDeltaFromInput();
+        //this.UpdateMovement(move_delta);
 
         if (Input.GetKeyUp(KeyCode.Comma))
         {
@@ -172,90 +188,84 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        this.UpdateMovement();
+
         // Clear/reset triggered bools for next frame
         this.on_ground = false;
     }
 
-    private Vector2 GetMoveDeltaFromInput()
+    private void GetMoveDeltaFromInput()
     {
         float horizontal_intput = Input.GetAxis(INPUT_HORIZONTAL);
-        Vector2 move_delta = Vector2.zero;
+        float vertial_input = Input.GetAxis(INPUT_JUMP);
 
-        if ((this.on_ground || this.extend_jump > 0) && Input.GetAxis(INPUT_JUMP) > 0)
+        if (horizontal_intput > 0f) this.movingRight = true;
+        else if (horizontal_intput < 0f) this.movingRight = false;
+
+        if (this.on_ground)
         {
-            if (this.extend_jump > 0) this.extend_jump -= 1;
-            if (this.on_ground) this.extend_jump = this.slice_jump;
-            move_delta.y += this.jump_speed;
-        }
-        if (Mathf.Abs(horizontal_intput) > 0.1f)
-        {
-            if (this.on_ground) move_delta.x += horizontal_intput * this.speed;
-            else move_delta.x += horizontal_intput * this.in_air_speed;
+            if (Mathf.Abs(horizontal_intput) > Utils.NEAR_ZERO_LOOSE)
+            {
+                this.stopTimer = 0f;
+                if (this.walkPercent < 1f) this.walkTimer += Time.deltaTime;
+                else if (this.runPercent < 1f) this.runTimer += Time.deltaTime;
+            }
+            else
+            {
+                this.walkTimer = 0f;
+                this.runTimer = 0f;
+            }
         }
 
-        return move_delta;
+        //Vector2 move_delta = Vector2.zero;
+
+        //if ((this.on_ground || this.extend_jump > 0) && Input.GetAxis(INPUT_JUMP) > 0)
+        //{
+        //    if (this.extend_jump > 0) this.extend_jump -= 1;
+        //    if (this.on_ground) this.extend_jump = this.sliceJumpFrames;
+        //    move_delta.y += this.jumpAcceleration * Time.deltaTime;
+        //}
+        //if (Mathf.Abs(horizontal_intput) > 0.1f)
+        //{
+        //    if (this.on_ground) move_delta.x += horizontal_intput * this.acceleration * Time.deltaTime;
+        //    else move_delta.x += horizontal_intput * this.inAirAcceleration * Time.deltaTime;
+        //}
+
+        //return move_delta;
     }
 
-    private void UpdateMovement(Vector2 delta)
+    private void UpdateMovement()
     {
         // Update velocity (counteract horizontal retained velocity if on ground)
-        if (this.on_ground) delta.x += -this.body.linearVelocity.x;
-        this.body.linearVelocity += new Vector2(delta.x, delta.y);
+        //if (this.on_ground) delta.x += -this.body.linearVelocity.x;
+        //this.body.linearVelocity += new Vector2(delta.x, delta.y);
+
+        // Limit acceleraiton from input
+        Vector2 new_velocity = this.body.linearVelocity;
+        if (Mathf.Abs(new_velocity.x + delta.x * Time.deltaTime) <= this.maxHorrizontalSpeed) new_velocity.x += delta.x * Time.deltaTime;
+        if (Mathf.Abs(new_velocity.y + delta.y * Time.deltaTime) <= this.maxVerticalSpeed) new_velocity.y += delta.y * Time.deltaTime;
+        this.body.linearVelocity = new_velocity;
 
         // Limit velocity
-        this.body.linearVelocity = new Vector2(
-            Mathf.Clamp(this.body.linearVelocity.x, -this.max_horizontal_speed, this.max_horizontal_speed),
-            Mathf.Clamp(this.body.linearVelocity.y, -this.max_vertical_speed * 10f, this.max_vertical_speed)
-        );
+        //this.body.linearVelocity = new Vector2(
+        //    Mathf.Clamp(this.body.linearVelocity.x, -this.maxHorrizontalSpeed, this.maxHorrizontalSpeed),
+        //    Mathf.Clamp(this.body.linearVelocity.y, -this.maxVerticalSpeed * 10f, this.maxVerticalSpeed)
+        //);
 
         // Trigger animations
-        if (this.sprite)
-        {
-            if (this.body.linearVelocity.x > 0.001f) this.sprite.flipX = true;
-            else if (this.body.linearVelocity.x < -0.001f) this.sprite.flipX = false;
-        }
+        if (this.body.linearVelocity.x > Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.Forward = Vector3.right;
+        else if (this.body.linearVelocity.x < -Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.Forward = Vector3.left;
 
         if (this.on_ground)
         {
             // TODO: if want feet to move automatically with ground this is where to do it now
             // How to: calc clock ratio as target over 1 revolution per sec
             // target is angular velocity (radians per sec) from linear velocity of surface speed
-            if (this.body.linearVelocity.x > 0.001f)
+            if (Mathf.Abs(this.body.linearVelocity.x) > Utils.NEAR_ZERO_LOOSE)
             {
-                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
-                
-                this.procAnimatorBody.Forward = Vector3.right;
-                if (this.procAnimatorBody.shoulderControllers[0].clockRatio > 0)
-                {
-                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
-                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
-                }
-                this.procAnimatorBody.shoulderControllers[0].Animate();
-            }
-            else if (this.body.linearVelocity.x < -0.001f)
-            {
-                // TODO: remove direction by having controller flip entire body (please for all that is good do this sooner rather than later)
-                this.procAnimatorBody.Forward = Vector3.left;
-                if (this.procAnimatorBody.shoulderControllers[0].clockRatio < 0)
-                {
-                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -1f * this.procAnimatorBody.shoulderControllers[0].clockRatio;
-                    this.procAnimatorBody.hipContollers[0].clockRatio = -1f * this.procAnimatorBody.hipContollers[0].clockRatio;
-                }
                 this.procAnimatorBody.shoulderControllers[0].Animate();
             }
             this.procAnimatorBody.hipContollers[0].Animate();
-
-            if (animator)
-            {
-                float ground_speed = Mathf.Abs(this.body.linearVelocity.x);
-                if (ground_speed < 0.001f) this.animator.SetTrigger("Idle");
-                else if (ground_speed < this.max_horizontal_speed * 0.75f) this.animator.SetTrigger("Walking");
-                else this.animator.SetTrigger("Running");
-            }
-        }
-        else
-        {
-            if (animator) this.animator.SetTrigger("InAir");
         }
     }
 

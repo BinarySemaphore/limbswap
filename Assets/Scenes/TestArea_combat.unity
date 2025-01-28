@@ -3123,12 +3123,12 @@ MonoBehaviour:
   sprite: {fileID: 0}
   animator: {fileID: 0}
   procAnimatorBody: {fileID: 543466286}
-  speed: 15
-  in_air_speed: 10
-  jump_speed: 24
-  slice_jump: 10
-  max_horizontal_speed: 7
-  max_vertical_speed: 15
+  acceleration: 150
+  inAirAcceleration: 150
+  jumpAcceleration: 200
+  sliceJumpFrames: 10
+  maxHorrizontalSpeed: 20
+  maxVerticalSpeed: 20
   selector: {fileID: 516335496}
   pickupPrefab: {fileID: 8501154036932602234, guid: 3fffbd7ec0cdaa54a94f92f883b3784b, type: 3}
   AttachmentPrefabList:
