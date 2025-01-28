@@ -37,7 +37,7 @@ public class AutoLimbHip : AutoLimbAttachment
         // Walking / Running
         if (contact)
         {
-            if (surface_rel_pos_delta.magnitude > 0.05f)
+            if (surface_rel_pos_delta.magnitude > Utils.NEAR_ZERO_LOOSE)
             {
 
                 Vector3 new_hip_position = this.transform.position - new Vector3(contact.point.x, contact.point.y, 0.0f);
@@ -73,9 +73,6 @@ public class AutoLimbHip : AutoLimbAttachment
 
     private void UpdateFeetMoving(Vector3 delta, RaycastHit2D contact)
     {
-
-        if (delta.magnitude < 0.01f) return;
-
         float phase;
         Vector3 new_foot_position;
         Vector3 contact_point_3d = new Vector3(contact.point.x, contact.point.y, this.endpointController.transform.position.z);

@@ -17,7 +17,7 @@ public class AutoLimbAttachment : MonoBehaviour
     protected GameObject debugArrow;
     protected GameObject debugCircle;
 
-    private Quaternion lastParentRotation;
+    private Quaternion lastParentRotation = Quaternion.identity;
 
 
     [HideInInspector]
@@ -170,11 +170,13 @@ public class AutoLimbAttachment : MonoBehaviour
         if (this.attachmentDirection.magnitude > 1 + NEAR_ZERO) this.attachmentDirection.Normalize();
         if (this.focusPoint.magnitude > 1 + NEAR_ZERO) this.focusPoint.Normalize();
 
+        //Vector3 attachmentDirectionRotated = this.bodyController.parent.transform.rotation * this.attachmentDirection;
+
         if (this.lastParentRotation != this.bodyController.transform.rotation)
         {
-            this.lastParentRotation = this.bodyController.transform.rotation;
             Quaternion changeInRotation = this.bodyController.transform.rotation * Quaternion.Inverse(this.lastParentRotation);
             this.attachmentDirection = changeInRotation * this.attachmentDirection;
+            this.lastParentRotation = this.bodyController.transform.rotation;
         }
 
         if (!this.influencesBodyPosition)
