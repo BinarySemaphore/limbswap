@@ -61,33 +61,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-        if (this.load_appendages)
-        {
-            this.load_appendages = false;
-            int index_count;
-            foreach (AutoLimbShoulder shoulder in this.procAnimatorBody.shoulderControllers)
-            {
-                index_count = 0;
-                foreach (Limb limb in shoulder.limbsAndSegments)
-                {
-                    this.AddLimbFromPrefab(shoulder, index_count, limb.prefab);
-                    index_count += 1;
-                }
-            }
-            foreach (AutoLimbHip hip in this.procAnimatorBody.hipContollers)
-            {
-                index_count = 0;
-                foreach (Limb limb in hip.limbsAndSegments)
-                {
-                    this.AddLimbFromPrefab(hip, index_count, limb.prefab);
-                    index_count += 1;
-                }
-            }
-        }
-
-        // TODO: move all input to Update()
         Vector2 move_delta = this.GetMoveDeltaFromInput();
         this.UpdateMovement(move_delta);
 
@@ -166,6 +141,33 @@ public class PlayerController : MonoBehaviour
                         this.AddLimb(controller, limb_index, pickup.item);
                         Destroy(pickup.gameObject);
                     }
+                }
+            }
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        if (this.load_appendages)
+        {
+            this.load_appendages = false;
+            int index_count;
+            foreach (AutoLimbShoulder shoulder in this.procAnimatorBody.shoulderControllers)
+            {
+                index_count = 0;
+                foreach (Limb limb in shoulder.limbsAndSegments)
+                {
+                    this.AddLimbFromPrefab(shoulder, index_count, limb.prefab);
+                    index_count += 1;
+                }
+            }
+            foreach (AutoLimbHip hip in this.procAnimatorBody.hipContollers)
+            {
+                index_count = 0;
+                foreach (Limb limb in hip.limbsAndSegments)
+                {
+                    this.AddLimbFromPrefab(hip, index_count, limb.prefab);
+                    index_count += 1;
                 }
             }
         }
