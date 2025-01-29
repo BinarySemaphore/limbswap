@@ -10,6 +10,7 @@ public static class Utils
     public const float NEAR_ZERO_LOOSE = 0.001f;
     public const float NEAR_ZERO = 0.00001f;
     public const float SQRT_HALF = 0.70710678f;
+    public const string GROUND_TAG = "Ground";
 
     public static float Mod(float number, float divisor)
     {

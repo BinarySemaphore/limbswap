@@ -24,6 +24,8 @@ public class AutoLimbHip : AutoLimbAttachment
     {
         Vector3 surface_rel_pos_delta = Vector3.zero;
 
+        
+        // TODO: Repplace contact with raycast from player controller.
         RaycastHit2D contact = Physics2D.Raycast(
             this.transform.position,
             this.focusPoint,
@@ -31,12 +33,12 @@ public class AutoLimbHip : AutoLimbAttachment
             LayerMask.GetMask("Surface")
         );
 
-        // TODO: Maybe sketchy doing vector2 to vector3 assignment. For safety, probably best to clean up explicitly.
-        if (this.lastSurfaceContact) surface_rel_pos_delta = contact.point - this.lastSurfaceContact.point;
-
         // Walking / Running
         if (contact)
         {
+            // TODO: Maybe sketchy doing vector2 to vector3 assignment. For safety, probably best to clean up explicitly.
+            if (this.lastSurfaceContact) surface_rel_pos_delta = contact.point - this.lastSurfaceContact.point;
+
             if (surface_rel_pos_delta.magnitude > Utils.NEAR_ZERO_LOOSE)
             {
 
