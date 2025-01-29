@@ -1,10 +1,7 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
+using Random = UnityEngine.Random;
 
 public class PlayerController : MonoBehaviour
 {
@@ -15,7 +12,10 @@ public class PlayerController : MonoBehaviour
     private bool load_appendages;
     private bool on_ground;
     private bool running;
+    private int attack_arm_index;
+    private int attack_leg_index;
     private int extend_jump;
+    private List<Func<bool>> attackAnimations;
     private Rigidbody2D body;
 
     [SerializeField]
@@ -51,6 +51,9 @@ public class PlayerController : MonoBehaviour
         this.body = this.GetComponent<Rigidbody2D>();
         this.extend_jump = 0;
         this.jump_speed /= this.slice_jump;
+        this.attack_arm_index = 0;
+        this.attack_leg_index = 0;
+        this.attackAnimations = new List<Func<bool>>(4);
     }
 
     private void OnTriggerStay2D(Collider2D collision)
@@ -67,16 +70,50 @@ public class PlayerController : MonoBehaviour
         Vector2 move_delta = this.GetMoveDeltaFromInput();
         this.UpdateMovement(move_delta);
 
+        if (this.attackAnimations.Count > 0)
+        {
+            for (int i = this.attackAnimations.Count - 1; i >= 0; i--)
+            {
+                bool finished = this.attackAnimations[i]();
+                if (finished) this.attackAnimations.Remove(this.attackAnimations[i]);
+            }
+        }
+
         if (on_ground)
         {
             if (Input.GetKey(KeyCode.LeftShift)) this.running = true;
             else this.running = false;
         }
 
-        if (Input.GetKeyDown(KeyCode.T))
+        if (Input.GetKeyDown(KeyCode.F))
         {
-            this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[0].Decoupled = !this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[0].Decoupled;
+            int start_index = this.attack_arm_index;
+            Limb check = this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[this.attack_arm_index];
+            while (check.attack == null)
+            {
+                this.attack_arm_index = (this.attack_arm_index + 1) % this.procAnimatorBody.shoulderControllers[0].limbsAndSegments.Length;
+                if (this.attack_arm_index == start_index)
+                {
+                    this.attack_arm_index = 0;
+                    break;
+                }
+                check = this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[this.attack_arm_index];
+            }
+
+            if (check.attack != null)
+            {
+                // TODO: do damage, followup in AttackHandler class
+                Func<bool> animationMethod = check.attack.Attack();
+                if (animationMethod != null) this.attackAnimations.Add(check.attack.Attack());
+            }
+
+            this.attack_arm_index = (this.attack_arm_index + 1) % this.procAnimatorBody.shoulderControllers[0].limbsAndSegments.Length;
         }
+
+        //if (Input.GetKeyDown(KeyCode.T))
+        //{
+        //    this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[0].Decoupled = !this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[0].Decoupled;
+        //}
 
         if (Input.GetKeyUp(KeyCode.Comma))
         {
@@ -239,7 +276,6 @@ public class PlayerController : MonoBehaviour
             }
             this.procAnimatorBody.hipContollers[0].Animate();
 
-            Debug.Log("On Ground");
             if (this.running)
             {
                 this.procAnimatorBody.hipContollers[0].gatePercent = 0.2f;
@@ -293,6 +329,7 @@ public class PlayerController : MonoBehaviour
     private void AddLimb(AutoLimbAttachment controller, int limb_index, GameObject existing, bool cleanup=true)
     {
         int i;
+        AttackContainer attackContainer;
 
         int child_count = existing.transform.childCount;
         if (child_count == 1) child_count = 2;
@@ -303,8 +340,17 @@ public class PlayerController : MonoBehaviour
         }
         // If adding single child as limb, create an empty GameObject for endpoint
         if (existing.transform.childCount == 1) children[1] = Instantiate(new GameObject("Empty Target"));
+        
         existing.transform.position = Vector3.zero;
         existing.transform.DetachChildren();
+
+        attackContainer = existing.GetComponent<AttackContainer>();
+        if (attackContainer != null)
+        {
+            controller.limbsAndSegments[limb_index].attack = attackContainer.attack;
+            controller.limbsAndSegments[limb_index].attack.parentLimb = controller.limbsAndSegments[limb_index];
+        }
+
         if (cleanup) Destroy(existing);
 
         Vector3 position = Vector3.zero;
@@ -335,6 +381,12 @@ public class PlayerController : MonoBehaviour
 
     private void DropLimb(AutoLimbAttachment controller, int limb_index)
     {
+        if (controller.limbsAndSegments[limb_index].Decoupled)
+        {
+            if (controller.limbsAndSegments[limb_index].attack != null) controller.limbsAndSegments[limb_index].attack.cancelAnimation = true;
+            controller.limbsAndSegments[limb_index].Decoupled = false;
+        }
+
         GameObject prefab = controller.limbsAndSegments[limb_index].prefab;
 
         // Remove from body
@@ -345,6 +397,7 @@ public class PlayerController : MonoBehaviour
         }
         foreach (GameObject segment in controller.limbsAndSegments[limb_index].segments) Destroy(segment);
         controller.limbsAndSegments[limb_index].segments.Clear();
+        controller.limbsAndSegments[limb_index].attack = null;
 
         // Drop new pickup
         GameObject pickup = Instantiate(this.pickupPrefab);

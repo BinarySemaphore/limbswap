@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1259087344417196532}
+  - component: {fileID: 4645895031217466342}
   m_Layer: 0
   m_Name: Weapon_Limb_Arm_01
   m_TagString: Untagged
@@ -34,6 +35,60 @@ Transform:
   - {fileID: 7746079084724788511}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4645895031217466342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371070499690333710}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48c9eef234d603d4a8052d7fb835d555, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attack:
+    parentLimb:
+      rightSide: 0
+      attack:
+        parentLimb:
+          rightSide: 0
+          attack:
+            parentLimb:
+              rightSide: 0
+              attack:
+                parentLimb:
+                  rightSide: 0
+                  attack:
+                    parentLimb:
+                      rightSide: 0
+                      attack:
+                        type: 0
+                      prefab: {fileID: 0}
+                      endpoint: {fileID: 0}
+                      segments: []
+                    type: 0
+                    prefabs: []
+                  prefab: {fileID: 0}
+                  endpoint: {fileID: 0}
+                  segments: []
+                type: 0
+                prefabs: []
+              prefab: {fileID: 0}
+              endpoint: {fileID: 0}
+              segments: []
+            type: 0
+            prefabs: []
+          prefab: {fileID: 0}
+          endpoint: {fileID: 0}
+          segments: []
+        type: 0
+        prefabs: []
+      prefab: {fileID: 0}
+      endpoint: {fileID: 0}
+      segments: []
+    type: 1
+    prefabs: []
 --- !u!1 &2780232675988782435
 GameObject:
   m_ObjectHideFlags: 0

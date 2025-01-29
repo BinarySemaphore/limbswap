@@ -6,9 +6,11 @@ using UnityEngine;
 public class Limb
 {
     private bool decoupled = false;
+    [SerializeReference]
     private GameObject coupledParent;
 
     public bool rightSide;
+    public AttackHandler attack = null;
     public GameObject prefab;
     public GameObject endpoint;
     public List<GameObject> segments;
@@ -52,7 +54,8 @@ public class AutoLimbAttachment : MonoBehaviour
     protected float endpointToAttachmentLength;
     protected Vector3 ikForward;
     protected AutoLimbEndpoint endpointController;
-    protected AutoLimb bodyController;
+    [HideInInspector]
+    public AutoLimb bodyController;
 
     protected GameObject debugArrow;
     protected GameObject debugCircle;
