@@ -1,5 +1,45 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+
+[Serializable]
+public class Limb
+{
+    private bool decoupled = false;
+    private GameObject coupledParent;
+
+    public bool rightSide;
+    public GameObject prefab;
+    public GameObject endpoint;
+    public List<GameObject> segments;
+
+    public bool Decoupled
+    {
+        get { return this.decoupled; }
+        set
+        {
+            this.decoupled = value;
+            if (this.decoupled)
+            {
+                if (this.coupledParent == null) this.coupledParent = this.endpoint.transform.parent.gameObject;
+                this.endpoint.transform.parent = this.coupledParent.transform.parent;
+                this.endpoint.transform.localPosition = Vector3.zero;
+                this.endpoint.transform.localRotation = Quaternion.identity;
+            }
+            else
+            {
+                if (this.coupledParent == null)
+                {
+                    Debug.LogWarning("Cannot couple before decoupling: ignored (leaving coupled as is)");
+                    return;
+                }
+                this.endpoint.transform.parent = this.coupledParent.transform;
+                this.endpoint.transform.localPosition = Vector3.zero;
+                this.endpoint.transform.localRotation = Quaternion.identity;
+            }
+        }
+    }
+}
 
 public class AutoLimbAttachment : MonoBehaviour
 {
@@ -112,7 +152,7 @@ public class AutoLimbAttachment : MonoBehaviour
         float z_depth;
         Limb limb;
         GameObject terminal, segment;
-        Vector3 start_to_end, start_point, end_point, z_depth_added;
+        Vector3 start_to_end, start_point, end_point, target, z_depth_added;
 
         for (int i = 0; i < this.endpointController.Terminals.Length; i++)
         {
@@ -130,12 +170,18 @@ public class AutoLimbAttachment : MonoBehaviour
             terminal = this.endpointController.Terminals[i].gameObject;
             limb = this.limbsAndSegments[i];
             start_point = this.transform.position;
-            if (segment_count == 1) end_point = terminal.transform.position;
+            if (limb.Decoupled) target = limb.endpoint.transform.position;
+            else target = terminal.transform.position;
+            if (segment_count == 1)
+            {
+                if (limb.Decoupled) end_point = limb.endpoint.transform.position;
+                else end_point = terminal.transform.position;
+            }
             else
             {
                 end_point = Utils.IkSolveTwoSeg(
                     this.transform.position,
-                    terminal.transform.position,
+                    target,
                     this.ikForward,
                     this.endpointToAttachmentLength * 0.5f
                 );
@@ -158,7 +204,8 @@ public class AutoLimbAttachment : MonoBehaviour
                 segment.transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
 
                 start_point = end_point;
-                end_point = terminal.transform.position;
+                if (limb.Decoupled) end_point = limb.endpoint.transform.position;
+                else end_point = terminal.transform.position;
             }
         }
     }

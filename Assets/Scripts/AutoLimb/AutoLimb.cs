@@ -10,14 +10,6 @@ public enum AutoLimbState
     Engaged
 }
 
-[Serializable]
-public class Limb
-{
-    public bool rightSide;
-    public GameObject prefab;
-    public List<GameObject> segments;
-}
-
 public class AutoLimb : MonoBehaviour
 {
     private float bodyToTargetLength;

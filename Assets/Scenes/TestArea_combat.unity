@@ -2612,11 +2612,15 @@ MonoBehaviour:
   focusPoint: {x: 0, y: 0, z: 0}
   state: 1
   limbsAndSegments:
-  - rightSide: 1
+  - decoupled: 0
+    rightSide: 1
     prefab: {fileID: 371070499690333710, guid: 2575cf9b62337f04e8194a05f9d3ee39, type: 3}
+    endpoint: {fileID: 0}
     segments: []
-  - rightSide: 0
+  - decoupled: 0
+    rightSide: 0
     prefab: {fileID: 371070499690333710, guid: 2575cf9b62337f04e8194a05f9d3ee39, type: 3}
+    endpoint: {fileID: 0}
     segments: []
   liftPercent: 0.3
   pathModifier: 0.5
@@ -3130,7 +3134,7 @@ MonoBehaviour:
   jump_speed: 26
   slice_jump: 13
   max_horizontal_speed: 7
-  max_vertical_speed: 15
+  max_vertical_speed: 16
   selector: {fileID: 516335496}
   pickupPrefab: {fileID: 8501154036932602234, guid: 3fffbd7ec0cdaa54a94f92f883b3784b, type: 3}
   AttachmentPrefabList:
@@ -4944,11 +4948,15 @@ MonoBehaviour:
   focusPoint: {x: 0, y: 0, z: 0}
   state: 1
   limbsAndSegments:
-  - rightSide: 1
+  - decoupled: 0
+    rightSide: 1
     prefab: {fileID: 692376051115410022, guid: caf6dbfa5d911fa4380c87c68da06a56, type: 3}
+    endpoint: {fileID: 0}
     segments: []
-  - rightSide: 0
+  - decoupled: 0
+    rightSide: 0
     prefab: {fileID: 692376051115410022, guid: caf6dbfa5d911fa4380c87c68da06a56, type: 3}
+    endpoint: {fileID: 0}
     segments: []
   gatePercent: 0.08
   liftPercent: 0.8

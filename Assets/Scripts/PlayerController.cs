@@ -73,6 +73,11 @@ public class PlayerController : MonoBehaviour
             else this.running = false;
         }
 
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[0].Decoupled = !this.procAnimatorBody.shoulderControllers[0].limbsAndSegments[0].Decoupled;
+        }
+
         if (Input.GetKeyUp(KeyCode.Comma))
         {
             AutoLimbAttachment controller;
@@ -289,26 +294,29 @@ public class PlayerController : MonoBehaviour
     {
         int i;
 
-        GameObject[] children = new GameObject[existing.transform.childCount];
+        int child_count = existing.transform.childCount;
+        if (child_count == 1) child_count = 2;
+        GameObject[] children = new GameObject[child_count];
         for (i = 0; i < existing.transform.childCount; i++)
         {
             children[i] = existing.transform.GetChild(i).gameObject;
         }
+        // If adding single child as limb, create an empty GameObject for endpoint
+        if (existing.transform.childCount == 1) children[1] = Instantiate(new GameObject("Empty Target"));
         existing.transform.position = Vector3.zero;
         existing.transform.DetachChildren();
         if (cleanup) Destroy(existing);
 
-        // TODO: seams reasonable for attaching hand/foot, might need to revist to make explicit hands; maybe by instance name?
-        bool add_endpoint = children.Length > 1;
         Vector3 position = Vector3.zero;
         Vector3 scale;
         for (i = 0; i < children.Length; i++)
         {
             scale = children[i].transform.localScale;
             // Endpoint (Hand/Foot)
-            if (add_endpoint && i == children.Length - 1)
+            if (i == children.Length - 1)
             {
                 children[i].transform.parent = controller.EndpointController.Terminals[limb_index].gameObject.transform;
+                controller.limbsAndSegments[limb_index].endpoint = children[i];
             }
             // Segment
             else
