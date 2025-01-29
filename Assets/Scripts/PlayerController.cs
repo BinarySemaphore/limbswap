@@ -14,6 +14,7 @@ public class PlayerController : MonoBehaviour
 
     private bool load_appendages;
     private bool on_ground;
+    private bool running;
     private int extend_jump;
     private Rigidbody2D body;
 
@@ -65,6 +66,12 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 move_delta = this.GetMoveDeltaFromInput();
         this.UpdateMovement(move_delta);
+
+        if (on_ground)
+        {
+            if (Input.GetKey(KeyCode.LeftShift)) this.running = true;
+            else this.running = false;
+        }
 
         if (Input.GetKeyUp(KeyCode.Comma))
         {
@@ -186,6 +193,7 @@ public class PlayerController : MonoBehaviour
             if (this.extend_jump > 0) this.extend_jump -= 1;
             if (this.on_ground) this.extend_jump = this.slice_jump;
             move_delta.y += this.jump_speed;
+            this.procAnimatorBody.hipContollers[0].NudgeAfterChange();
         }
         if (Mathf.Abs(horizontal_intput) > 0.1f)
         {
@@ -202,8 +210,11 @@ public class PlayerController : MonoBehaviour
         if (this.on_ground) delta.x += -this.body.linearVelocity.x;
         this.body.linearVelocity += new Vector2(delta.x, delta.y);
 
+        float real_max_horizontal_speed = this.max_horizontal_speed;
+        if (this.running) real_max_horizontal_speed *= 1.5f;
+
         this.body.linearVelocity = new Vector2(
-            Mathf.Clamp(this.body.linearVelocity.x, -this.max_horizontal_speed, this.max_horizontal_speed),
+            Mathf.Clamp(this.body.linearVelocity.x, -real_max_horizontal_speed, real_max_horizontal_speed),
             Mathf.Clamp(this.body.linearVelocity.y, -this.max_vertical_speed * 10f, this.max_vertical_speed)
         );
 
@@ -211,13 +222,60 @@ public class PlayerController : MonoBehaviour
         if (this.body.linearVelocity.x > Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.Forward = Vector3.right;
         else if (this.body.linearVelocity.x < -Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.Forward = Vector3.left;
 
+        //this.transform.rotation = Quaternion.AngleAxis(15f, Vector3.forward);
         if (this.on_ground)
         {
             // TODO: if want feet to move automatically with ground this is where to do it now
             // How to: calc clock ratio as target over 1 revolution per sec
             // target is angular velocity (radians per sec) from linear velocity of surface speed
-            if (Mathf.Abs(this.body.linearVelocity.x) > Utils.NEAR_ZERO_LOOSE) this.procAnimatorBody.shoulderControllers[0].Animate();
+            if (Mathf.Abs(this.body.linearVelocity.x) > Utils.NEAR_ZERO_LOOSE)
+            {
+                this.procAnimatorBody.shoulderControllers[0].Animate();
+            }
             this.procAnimatorBody.hipContollers[0].Animate();
+
+            Debug.Log("On Ground");
+            if (this.running)
+            {
+                this.procAnimatorBody.hipContollers[0].gatePercent = 0.2f;
+                if (this.body.linearVelocity.x > Utils.NEAR_ZERO_LOOSE)
+                {
+                    this.procAnimatorBody.shoulderControllers[0].clockRatio = -2f;
+                    this.procAnimatorBody.shoulderControllers[0].focusPoint = new Vector3(0.3f, -0.6f, 0f);
+                    this.procAnimatorBody.hipContollers[0].focusPoint = new Vector3(-0.3f, -0.7f, 0f);
+                    this.transform.rotation = Quaternion.AngleAxis(-12f, Vector3.forward);
+                }
+                else if (this.body.linearVelocity.x < -Utils.NEAR_ZERO_LOOSE)
+                {
+                    this.procAnimatorBody.shoulderControllers[0].clockRatio = 2f;
+                    this.procAnimatorBody.shoulderControllers[0].focusPoint = new Vector3(-0.3f, -0.6f, 0f);
+                    this.procAnimatorBody.hipContollers[0].focusPoint = new Vector3(0.3f, -0.7f, 0f);
+                    this.transform.rotation = Quaternion.AngleAxis(12f, Vector3.forward);
+                }
+            }
+            else
+            {
+                this.procAnimatorBody.shoulderControllers[0].focusPoint = new Vector3(0f, -1f, 0f);
+                this.procAnimatorBody.hipContollers[0].focusPoint = new Vector3(0f, -1f, 0f);
+                this.transform.rotation = Quaternion.identity;
+                this.procAnimatorBody.hipContollers[0].gatePercent = 0.08f;
+            }
+        }
+        else
+        {
+            if (this.body.linearVelocity.x > Utils.NEAR_ZERO_LOOSE)
+            {
+                this.procAnimatorBody.shoulderControllers[0].clockRatio = -0.5f;
+                this.procAnimatorBody.shoulderControllers[0].focusPoint = new Vector3(0.5f, -0.2f, 0f);
+                this.transform.rotation = Quaternion.AngleAxis(-12f, Vector3.forward);
+            }
+            else if (this.body.linearVelocity.x < -Utils.NEAR_ZERO_LOOSE)
+            {
+                this.procAnimatorBody.shoulderControllers[0].clockRatio = 0.5f;
+                this.procAnimatorBody.shoulderControllers[0].focusPoint = new Vector3(-0.5f, -0.2f, 0f);
+                this.transform.rotation = Quaternion.AngleAxis(12f, Vector3.forward);
+            }
+            this.procAnimatorBody.shoulderControllers[0].Animate();
         }
     }
 

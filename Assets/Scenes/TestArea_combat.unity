@@ -3125,10 +3125,10 @@ MonoBehaviour:
   sprite: {fileID: 0}
   animator: {fileID: 0}
   procAnimatorBody: {fileID: 543466286}
-  speed: 15
-  in_air_speed: 10
-  jump_speed: 24
-  slice_jump: 10
+  speed: 10
+  in_air_speed: 8
+  jump_speed: 26
+  slice_jump: 13
   max_horizontal_speed: 7
   max_vertical_speed: 15
   selector: {fileID: 516335496}

@@ -32,12 +32,10 @@ public class AutoLimbAttachment : MonoBehaviour
     [SerializeField]
     [Range(0.01f, 0.99f)]
     protected float attachmentSpringiness = 0.30f;
-    [SerializeField]
     [Tooltip("Leave zero to autoset on spawn")]
-    protected Vector3 attachmentDirection = Vector3.zero;
-    [SerializeField]
+    public Vector3 attachmentDirection = Vector3.zero;
     [Tooltip("Leave zero to autoset on spawn")]
-    protected Vector3 focusPoint = Vector3.zero;
+    public Vector3 focusPoint = Vector3.zero;
     [SerializeField]
     protected AutoLimbState state = AutoLimbState.Paused;
 
@@ -65,9 +63,7 @@ public class AutoLimbAttachment : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (this.state != AutoLimbState.Engaged) return;
-        this.clock += this.bodyController.deltaClock * this.clockRatio;
-        this.clock = Utils.Mod(this.clock, Utils.FULL_TURN);
+        if (this.state == AutoLimbState.Disabled) return;
 
         this.ikForward = this.bodyController.Forward;
         this.PositionEndpointsAndAttachmentWithParent();
@@ -82,6 +78,10 @@ public class AutoLimbAttachment : MonoBehaviour
             }
             ConstructEndpointsAndSegments();
         }
+
+        if (this.state != AutoLimbState.Engaged) return;
+        this.clock += this.bodyController.deltaClock * this.clockRatio;
+        this.clock = Utils.Mod(this.clock, Utils.FULL_TURN);
 
         if (this.animateCalled)
         {

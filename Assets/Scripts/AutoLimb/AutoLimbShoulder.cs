@@ -40,11 +40,11 @@ public class AutoLimbShoulder : AutoLimbAttachment
         float radius = this.endpointToAttachmentLength * 0.5f * this.pathModifier;
 
         // Move hands in front of body
-        this.endpointController.transform.position = new Vector3(
-            this.bodyController.Forward.x * 0.1f + this.transform.position.x,
-            this.endpointController.transform.position.y,
-            this.endpointController.transform.position.z
-        );
+        //this.endpointController.transform.position = new Vector3(
+        //    this.bodyController.Forward.x * 0.1f + this.transform.position.x,
+        //    this.endpointController.transform.position.y,
+        //    this.endpointController.transform.position.z
+        //);
 
         foreach (AutoLimbTerminal terminal in this.endpointController.Terminals)
         {
